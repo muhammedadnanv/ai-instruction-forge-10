@@ -1,5 +1,7 @@
+
 import { Button } from "@/components/ui/button";
 import { HelpCircle, Settings } from "lucide-react";
+
 const Header = () => {
   return <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
       <div className="container mx-auto px-4 py-3 flex justify-between items-center">
@@ -11,7 +13,7 @@ const Header = () => {
               <line x1="12" y1="22.08" x2="12" y2="12"></line>
             </svg>
           </div>
-          <h1 className="text-xl font-bold text-gray-800">AI Instruction Builder</h1>
+          <h1 className="text-xl font-bold text-gray-800">InstructAI</h1>
         </div>
         
         <div className="flex items-center gap-2">
@@ -26,8 +28,7 @@ const Header = () => {
           </Button>
         </div>
       </div>
-      
-      
     </header>;
 };
+
 export default Header;
