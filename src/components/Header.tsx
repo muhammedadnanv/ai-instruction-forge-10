@@ -1,5 +1,7 @@
+
 import { Button } from "@/components/ui/button";
 import { HelpCircle, Settings } from "lucide-react";
+
 const Header = () => {
   return <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
       <div className="container mx-auto px-4 py-3 flex justify-between items-center">
@@ -21,9 +23,15 @@ const Header = () => {
           <Button variant="ghost" size="icon">
             <Settings size={20} />
           </Button>
-          <Button className="bg-indigo-600 hover:bg-indigo-700">Donate</Button>
+          <Button 
+            className="bg-indigo-600 hover:bg-indigo-700"
+            onClick={() => window.open('https://razorpay.me/@aznoxx?amount=zPcDiUDYF4mzSgsG00XV0w%3D%3D', '_blank')}
+          >
+            Donate
+          </Button>
         </div>
       </div>
     </header>;
 };
+
 export default Header;
