@@ -1,10 +1,7 @@
-
 import { Button } from "@/components/ui/button";
 import { HelpCircle, Settings } from "lucide-react";
-
 const Header = () => {
-  return (
-    <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
+  return <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
       <div className="container mx-auto px-4 py-3 flex justify-between items-center">
         <div className="flex items-center gap-2">
           <div className="bg-indigo-600 text-white p-2 rounded-md">
@@ -30,17 +27,7 @@ const Header = () => {
         </div>
       </div>
       
-      <div className="bg-gradient-to-r from-indigo-600 to-purple-600 py-10 px-4 text-center">
-        <h2 className="text-3xl font-bold text-white mb-3">
-          Generate Powerful System Instructions for AI Models
-        </h2>
-        <p className="text-indigo-100 max-w-2xl mx-auto">
-          Create structured, framework-based instructions that guide AI behavior with precision and clarity.
-          Optimize your AI interactions using multiple proven frameworks.
-        </p>
-      </div>
-    </header>
-  );
+      
+    </header>;
 };
-
 export default Header;
