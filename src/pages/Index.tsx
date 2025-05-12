@@ -11,6 +11,7 @@ import Header from "@/components/Header";
 import OutputPreview from "@/components/OutputPreview";
 import PromptCollection from "@/components/PromptCollection";
 import { useToast } from "@/components/ui/use-toast";
+import { Sparkles, Copy, Lightbulb } from "lucide-react";
 
 const Index = () => {
   const [selectedFramework, setSelectedFramework] = useState("ACT");
@@ -105,7 +106,18 @@ const Index = () => {
             <TabsContent value="create" className="space-y-6">
               <div className="grid md:grid-cols-2 gap-6">
                 <div className="space-y-4">
-                  <h2 className="text-xl font-semibold text-gray-800">Define Your AI Instructions</h2>
+                  <div className="flex items-center space-x-2">
+                    <h2 className="text-xl font-semibold text-gray-800">Define Your AI Instructions</h2>
+                    <Lightbulb size={20} className="text-amber-500" />
+                  </div>
+                  
+                  <div className="bg-blue-50 p-4 rounded-md border border-blue-100">
+                    <p className="text-sm text-blue-700">
+                      Select a framework and provide details about how you want the AI to behave.
+                      The builder below will help you structure your instructions according to the 
+                      chosen framework.
+                    </p>
+                  </div>
                   
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -123,7 +135,7 @@ const Index = () => {
                     </label>
                     <Textarea
                       placeholder="Enter details about how you want the AI to behave..."
-                      className="min-h-[200px] resize-y"
+                      className="min-h-[150px] resize-y"
                       value={instruction}
                       onChange={(e) => setInstruction(e.target.value)}
                     />
@@ -138,8 +150,9 @@ const Index = () => {
                     <Button 
                       onClick={generateInstruction} 
                       disabled={isGenerating}
-                      className="bg-indigo-600 hover:bg-indigo-700"
+                      className="bg-indigo-600 hover:bg-indigo-700 flex gap-2"
                     >
+                      <Sparkles size={18} />
                       {isGenerating ? "Generating..." : "Generate Instructions"}
                     </Button>
                     
@@ -147,14 +160,18 @@ const Index = () => {
                       variant="outline" 
                       onClick={copyToClipboard}
                       disabled={!generatedInstruction}
+                      className="flex gap-2"
                     >
+                      <Copy size={18} />
                       Copy to Clipboard
                     </Button>
                   </div>
                 </div>
                 
                 <div>
-                  <h2 className="text-xl font-semibold text-gray-800 mb-4">Generated Instruction</h2>
+                  <div className="flex items-center space-x-2 mb-4">
+                    <h2 className="text-xl font-semibold text-gray-800">Generated Instruction</h2>
+                  </div>
                   <OutputPreview 
                     generatedInstruction={generatedInstruction} 
                     isGenerating={isGenerating} 
