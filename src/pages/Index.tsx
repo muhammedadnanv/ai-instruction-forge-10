@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -16,7 +15,7 @@ import ApiKeyDialog from "@/components/ApiKeyDialog";
 import SystemInstructionDialog from "@/components/SystemInstructionDialog";
 import FunctionCallingTools from "@/components/FunctionCallingTools";
 import { useToast } from "@/hooks/use-toast";
-import { Sparkles, Copy, Lightbulb, Info, FileText as FileTextIcon, AlertCircle, Function } from "lucide-react";
+import { Sparkles, Copy, Lightbulb, Info, FileText as FileTextIcon, AlertCircle, FileCode } from "lucide-react";
 import geminiService, { GeminiTool } from "@/services/geminiService";
 
 const Index = () => {
@@ -220,7 +219,7 @@ const Index = () => {
                   <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
                     <div className="flex items-center justify-between mb-4">
                       <h3 className="text-sm font-medium text-gray-700 flex items-center gap-1">
-                        <Function size={16} />
+                        <FileCode size={16} />
                         Function Calling Tools
                       </h3>
                     </div>

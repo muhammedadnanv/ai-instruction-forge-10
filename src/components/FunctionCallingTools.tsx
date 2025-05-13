@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Function, Plus, X } from "lucide-react";
+import { FileCode, Plus, X } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { GeminiTool } from "@/services/geminiService";
 import { z } from "zod";
@@ -230,7 +230,7 @@ const FunctionCallingTools = ({ onAddTool, onRemoveTool, tools }: FunctionCallin
                 <div className="flex justify-between p-4">
                   <div className="flex items-start gap-2">
                     <div className="p-2 bg-indigo-50 rounded-md">
-                      <Function size={16} className="text-indigo-600" />
+                      <FileCode size={16} className="text-indigo-600" />
                     </div>
                     <div>
                       <p className="text-sm font-medium">{tool.name}</p>
