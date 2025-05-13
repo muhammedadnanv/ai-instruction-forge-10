@@ -13,22 +13,36 @@ import PromptCollection from "@/components/PromptCollection";
 import SavedInstructions from "@/components/SavedInstructions";
 import SaveInstructionDialog from "@/components/SaveInstructionDialog";
 import ApiKeyDialog from "@/components/ApiKeyDialog";
+import SystemInstructionDialog from "@/components/SystemInstructionDialog";
+import FunctionCallingTools from "@/components/FunctionCallingTools";
 import { useToast } from "@/hooks/use-toast";
-import { Sparkles, Copy, Lightbulb, Info, FileText, AlertCircle } from "lucide-react";
-import geminiService from "@/services/geminiService";
+import { Sparkles, Copy, Lightbulb, Info, FileText as FileTextIcon, AlertCircle, Function } from "lucide-react";
+import geminiService, { GeminiTool } from "@/services/geminiService";
 
 const Index = () => {
   const [selectedFramework, setSelectedFramework] = useState("ACT");
   const [instruction, setInstruction] = useState("");
   const [generatedInstruction, setGeneratedInstruction] = useState("");
+  const [streamingContent, setStreamingContent] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [hasApiKey, setHasApiKey] = useState(false);
+  const [hasSystemInstruction, setHasSystemInstruction] = useState(false);
+  const [tools, setTools] = useState<GeminiTool[]>([]);
   const { toast } = useToast();
+
+  // Check if streaming is enabled
+  const isStreamingEnabled = () => {
+    return localStorage.getItem("use_streaming") === "true";
+  };
 
   useEffect(() => {
     // Check if API key is already set
     const apiKey = geminiService.getApiKey();
     setHasApiKey(!!apiKey);
+
+    // Check if system instruction is set
+    const systemInstruction = geminiService.getDefaultSystemInstruction();
+    setHasSystemInstruction(!!systemInstruction);
   }, []);
 
   const generateInstruction = async () => {
@@ -51,17 +65,57 @@ const Index = () => {
     }
 
     setIsGenerating(true);
+
+    // Reset generated content
+    if (isStreamingEnabled()) {
+      setStreamingContent("");
+    } else {
+      setGeneratedInstruction("");
+    }
+
+    const request = {
+      prompt: instruction,
+      framework: selectedFramework,
+      tools: tools.length > 0 ? tools : undefined
+    };
+
     try {
-      const response = await geminiService.generateInstruction({
-        prompt: instruction,
-        framework: selectedFramework
-      });
-      
-      setGeneratedInstruction(response.generatedText);
-      toast({
-        title: "Success",
-        description: "AI instruction generated successfully!"
-      });
+      if (isStreamingEnabled()) {
+        // Use streaming API
+        await geminiService.generateInstructionStream(request, {
+          onStart: () => {
+            console.log("Stream started");
+          },
+          onUpdate: (chunk) => {
+            setStreamingContent(prev => prev + chunk);
+          },
+          onComplete: (fullText) => {
+            setStreamingContent(fullText);
+            setIsGenerating(false);
+            toast({
+              title: "Success",
+              description: "AI instruction generated successfully!"
+            });
+          },
+          onError: (error) => {
+            toast({
+              title: "Error",
+              description: error.message || "Failed to generate instruction. Please try again.",
+              variant: "destructive"
+            });
+            setIsGenerating(false);
+          }
+        });
+      } else {
+        // Use regular API
+        const response = await geminiService.generateInstruction(request);
+        setGeneratedInstruction(response.generatedText);
+        toast({
+          title: "Success",
+          description: "AI instruction generated successfully!"
+        });
+        setIsGenerating(false);
+      }
     } catch (error) {
       toast({
         title: "Error",
@@ -69,13 +123,14 @@ const Index = () => {
         variant: "destructive"
       });
       console.error("Error generating instruction:", error);
-    } finally {
       setIsGenerating(false);
     }
   };
 
   const copyToClipboard = () => {
-    if (!generatedInstruction) {
+    const contentToCopy = isStreamingEnabled() ? streamingContent : generatedInstruction;
+    
+    if (!contentToCopy) {
       toast({
         title: "Nothing to copy",
         description: "Generate an instruction first",
@@ -83,11 +138,19 @@ const Index = () => {
       });
       return;
     }
-    navigator.clipboard.writeText(generatedInstruction);
+    navigator.clipboard.writeText(contentToCopy);
     toast({
       title: "Copied!",
       description: "Instruction copied to clipboard"
     });
+  };
+
+  const handleAddTool = (tool: GeminiTool) => {
+    setTools(prev => [...prev, tool]);
+  };
+
+  const handleRemoveTool = (toolName: string) => {
+    setTools(prev => prev.filter(tool => tool.name !== toolName));
   };
 
   return (
@@ -100,8 +163,9 @@ const Index = () => {
           <p className="text-gray-600 max-w-2xl mx-auto">
             Use proven frameworks and Gemini AI to generate effective instructions that guide AI behavior with precision and clarity
           </p>
-          <div className="mt-4">
+          <div className="mt-4 flex flex-wrap gap-2 justify-center">
             <ApiKeyDialog onApiKeySet={() => setHasApiKey(true)} />
+            <SystemInstructionDialog onSystemInstructionSet={() => setHasSystemInstruction(true)} />
           </div>
         </section>
 
@@ -153,6 +217,20 @@ const Index = () => {
                     />
                   </div>
                   
+                  <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-sm font-medium text-gray-700 flex items-center gap-1">
+                        <Function size={16} />
+                        Function Calling Tools
+                      </h3>
+                    </div>
+                    <FunctionCallingTools 
+                      onAddTool={handleAddTool} 
+                      onRemoveTool={handleRemoveTool}
+                      tools={tools} 
+                    />
+                  </div>
+                  
                   <InstructionBuilder framework={selectedFramework} setInstruction={setInstruction} />
                   
                   <div className="flex flex-wrap gap-3">
@@ -168,16 +246,16 @@ const Index = () => {
                     <Button 
                       variant="outline" 
                       onClick={copyToClipboard} 
-                      disabled={!generatedInstruction} 
+                      disabled={!(isStreamingEnabled() ? streamingContent : generatedInstruction)} 
                       className="border-gray-300 hover:bg-gray-50 flex gap-2"
                     >
                       <Copy size={18} />
                       Copy to Clipboard
                     </Button>
 
-                    {generatedInstruction && (
+                    {(isStreamingEnabled() ? streamingContent : generatedInstruction) && (
                       <SaveInstructionDialog 
-                        instruction={generatedInstruction} 
+                        instruction={isStreamingEnabled() ? streamingContent : generatedInstruction} 
                         framework={selectedFramework}
                       />
                     )}
@@ -185,7 +263,12 @@ const Index = () => {
                 </div>
                 
                 <div>
-                  <OutputPreview generatedInstruction={generatedInstruction} isGenerating={isGenerating} />
+                  <OutputPreview 
+                    generatedInstruction={generatedInstruction} 
+                    isGenerating={isGenerating} 
+                    streamingContent={streamingContent}
+                    isStreaming={isStreamingEnabled()}
+                  />
                 </div>
               </div>
             </TabsContent>
@@ -219,7 +302,7 @@ const Index = () => {
           
           <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-200">
             <div className="bg-green-50 p-2 rounded-full w-10 h-10 flex items-center justify-center mb-3">
-              <FileText className="text-green-500" size={18} />
+              <FileTextIcon className="text-green-500" size={18} />
             </div>
             <h3 className="text-lg font-medium text-gray-800 mb-2">Save & Reuse</h3>
             <p className="text-gray-600 text-sm">Store your custom instructions for quick access and future reference.</p>

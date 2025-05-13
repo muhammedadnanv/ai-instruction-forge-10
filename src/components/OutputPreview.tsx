@@ -2,24 +2,43 @@
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Copy } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
 
 interface OutputPreviewProps {
   generatedInstruction: string;
   isGenerating: boolean;
+  streamingContent?: string;
+  isStreaming?: boolean;
 }
 
-const OutputPreview = ({ generatedInstruction, isGenerating }: OutputPreviewProps) => {
+const OutputPreview = ({ 
+  generatedInstruction, 
+  isGenerating, 
+  streamingContent = "", 
+  isStreaming = false 
+}: OutputPreviewProps) => {
   const [copying, setCopying] = useState(false);
   const { toast } = useToast();
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
+  
+  // Auto-scroll to bottom when streaming content updates
+  useEffect(() => {
+    if (isStreaming && scrollAreaRef.current) {
+      const scrollElement = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
+      if (scrollElement) {
+        scrollElement.scrollTop = scrollElement.scrollHeight;
+      }
+    }
+  }, [streamingContent, isStreaming]);
   
   const copyToClipboard = async () => {
-    if (!generatedInstruction) return;
+    const contentToCopy = isStreaming ? streamingContent : generatedInstruction;
+    if (!contentToCopy) return;
     
     setCopying(true);
     try {
-      await navigator.clipboard.writeText(generatedInstruction);
+      await navigator.clipboard.writeText(contentToCopy);
       toast({
         title: "Copied!",
         description: "Instruction copied to clipboard"
@@ -35,7 +54,7 @@ const OutputPreview = ({ generatedInstruction, isGenerating }: OutputPreviewProp
     }
   };
 
-  if (isGenerating) {
+  if (isGenerating && !isStreaming) {
     return (
       <div className="border rounded-lg p-5 bg-white h-[400px] shadow-sm">
         <div className="flex items-center justify-between mb-4">
@@ -66,7 +85,7 @@ const OutputPreview = ({ generatedInstruction, isGenerating }: OutputPreviewProp
     );
   }
 
-  if (!generatedInstruction) {
+  if ((isStreaming && !streamingContent) || (!isStreaming && !generatedInstruction)) {
     return (
       <div className="border rounded-lg p-6 bg-gradient-to-br from-gray-50 to-blue-50 h-[400px] flex items-center justify-center text-center">
         <div>
@@ -90,10 +109,14 @@ const OutputPreview = ({ generatedInstruction, isGenerating }: OutputPreviewProp
     );
   }
 
+  const displayContent = isStreaming ? streamingContent : generatedInstruction;
+
   return (
     <div className="border rounded-lg bg-white h-[400px] shadow-sm flex flex-col">
       <div className="flex items-center justify-between p-3 border-b">
-        <h3 className="font-medium text-gray-700">Generated Instruction</h3>
+        <h3 className="font-medium text-gray-700">
+          {isStreaming && isGenerating ? "Streaming Response..." : "Generated Instruction"}
+        </h3>
         <button 
           onClick={copyToClipboard} 
           className={`p-2 rounded-full transition-all ${copying ? 'bg-green-100 text-green-600' : 'hover:bg-gray-100 text-gray-600'}`}
@@ -102,9 +125,12 @@ const OutputPreview = ({ generatedInstruction, isGenerating }: OutputPreviewProp
           <Copy size={16} />
         </button>
       </div>
-      <ScrollArea className="p-4 flex-grow">
+      <ScrollArea className="p-4 flex-grow" ref={scrollAreaRef}>
         <div className="whitespace-pre-wrap font-mono text-sm">
-          {generatedInstruction}
+          {displayContent}
+          {isStreaming && isGenerating && (
+            <span className="inline-block w-2 h-4 ml-1 bg-indigo-500 animate-pulse"></span>
+          )}
         </div>
       </ScrollArea>
     </div>
