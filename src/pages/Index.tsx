@@ -1,362 +1,190 @@
-import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+
+import { useState } from "react";
+import { motion } from "framer-motion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Textarea } from "@/components/ui/textarea";
-import { useToast } from "@/hooks/use-toast";
-import InstructionBuilder from "@/components/InstructionBuilder";
-import FrameworkSelector from "@/components/FrameworkSelector";
-import Header from "@/components/Header";
-import OutputPreview from "@/components/OutputPreview";
-import PromptCollection from "@/components/PromptCollection";
-import PromptStrategies from "@/components/PromptStrategies";
-import SavedInstructions from "@/components/SavedInstructions";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Heart, Zap, Code, Lock, Server, ArrowUpRight } from "lucide-react";
 import SaveInstructionDialog from "@/components/SaveInstructionDialog";
-import ApiKeyDialog from "@/components/ApiKeyDialog";
 import SystemInstructionDialog from "@/components/SystemInstructionDialog";
-import FunctionCallingTools from "@/components/FunctionCallingTools";
+import SavedInstructions from "@/components/SavedInstructions";
+import FrameworkSelector from "@/components/FrameworkSelector";
+import InstructionBuilder from "@/components/InstructionBuilder";
+import OutputPreview from "@/components/OutputPreview";
+import ApiKeyDialog from "@/components/ApiKeyDialog";
 import PaymentDialog from "@/components/PaymentDialog";
-import { Sparkles, Copy, Lightbulb, Info, FileText as FileTextIcon, AlertCircle, FileCode } from "lucide-react";
-import geminiService, { GeminiTool } from "@/services/geminiService";
+import SecuritySettings from "@/components/SecuritySettings";
+import PromptOpsSettings from "@/components/PromptOpsSettings";
 
-const Index = () => {
-  const [selectedFramework, setSelectedFramework] = useState("ACT");
+export default function Index() {
+  const [framework, setFramework] = useState("openai");
   const [instruction, setInstruction] = useState("");
-  const [generatedInstruction, setGeneratedInstruction] = useState("");
-  const [streamingContent, setStreamingContent] = useState("");
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [hasApiKey, setHasApiKey] = useState(false);
-  const [hasSystemInstruction, setHasSystemInstruction] = useState(false);
-  const [tools, setTools] = useState<GeminiTool[]>([]);
-  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
-  const { toast } = useToast();
+  const [output, setOutput] = useState("");
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    return localStorage.getItem("gemini_api_key") !== null && 
+           localStorage.getItem("has_paid") === "true";
+  });
+  const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
+  const [apiKeyDialogOpen, setApiKeyDialogOpen] = useState(!isAuthenticated);
 
-  // Check if streaming is enabled
-  const isStreamingEnabled = () => {
-    return localStorage.getItem("use_streaming") === "true";
+  const handleSystemInstructionSet = () => {
+    // This is called when the system instruction is updated
+    console.log("System instruction updated");
   };
 
-  useEffect(() => {
-    // Check if API key is already set
-    const apiKey = geminiService.getApiKey();
-    setHasApiKey(!!apiKey);
-
-    // Check if system instruction is set
-    const systemInstruction = geminiService.getDefaultSystemInstruction();
-    setHasSystemInstruction(!!systemInstruction);
-  }, []);
-
-  const checkPaymentStatus = () => {
-    const paymentVerified = localStorage.getItem('payment_verified') === 'true';
-    return paymentVerified;
-  };
-
-  const generateInstruction = async () => {
-    if (!geminiService.getApiKey()) {
-      toast({
-        title: "API Key Required",
-        description: "Please set your Gemini API key first",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    // Check payment status
-    if (!checkPaymentStatus()) {
-      setShowPaymentDialog(true);
-      return;
-    }
-
-    if (!instruction.trim()) {
-      toast({
-        title: "Error",
-        description: "Please enter an instruction prompt first.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setIsGenerating(true);
-
-    // Reset generated content
-    if (isStreamingEnabled()) {
-      setStreamingContent("");
+  const handleApiKeySubmit = () => {
+    // Check if the user has paid
+    if (localStorage.getItem("has_paid") !== "true") {
+      setPaymentDialogOpen(true);
     } else {
-      setGeneratedInstruction("");
-    }
-
-    const request = {
-      prompt: instruction,
-      framework: selectedFramework,
-      tools: tools.length > 0 ? tools : undefined
-    };
-
-    try {
-      if (isStreamingEnabled()) {
-        // Use streaming API
-        await geminiService.generateInstructionStream(request, {
-          onStart: () => {
-            console.log("Stream started");
-          },
-          onUpdate: (chunk) => {
-            setStreamingContent(prev => prev + chunk);
-          },
-          onComplete: (fullText) => {
-            setStreamingContent(fullText);
-            setIsGenerating(false);
-            toast({
-              title: "Success",
-              description: "AI instruction generated successfully!"
-            });
-          },
-          onError: (error) => {
-            toast({
-              title: "Error",
-              description: error.message || "Failed to generate instruction. Please try again.",
-              variant: "destructive"
-            });
-            setIsGenerating(false);
-          }
-        });
-      } else {
-        // Use regular API
-        const response = await geminiService.generateInstruction(request);
-        setGeneratedInstruction(response.generatedText);
-        toast({
-          title: "Success",
-          description: "AI instruction generated successfully!"
-        });
-        setIsGenerating(false);
-      }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to generate instruction. Please try again.",
-        variant: "destructive"
-      });
-      console.error("Error generating instruction:", error);
-      setIsGenerating(false);
+      setIsAuthenticated(true);
     }
   };
 
   const handlePaymentComplete = () => {
-    // After payment is complete, continue with instruction generation
-    toast({
-      title: "Payment Successful",
-      description: "Thank you for your payment! You can now use all features."
-    });
-  };
-
-  const copyToClipboard = () => {
-    const contentToCopy = isStreamingEnabled() ? streamingContent : generatedInstruction;
-    
-    if (!contentToCopy) {
-      toast({
-        title: "Nothing to copy",
-        description: "Generate an instruction first",
-        variant: "destructive"
-      });
-      return;
-    }
-    navigator.clipboard.writeText(contentToCopy);
-    toast({
-      title: "Copied!",
-      description: "Instruction copied to clipboard"
-    });
-  };
-
-  const handleAddTool = (tool: GeminiTool) => {
-    setTools(prev => [...prev, tool]);
-  };
-
-  const handleRemoveTool = (toolName: string) => {
-    setTools(prev => prev.filter(tool => tool.name !== toolName));
+    localStorage.setItem("has_paid", "true");
+    setPaymentDialogOpen(false);
+    setIsAuthenticated(true);
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-indigo-50 via-blue-50 to-white">
-      <Header />
-      
-      <main className="container py-8 px-4 mx-auto">
-        <section className="mb-8 text-center">
-          <h1 className="text-3xl md:text-5xl font-bold mb-3 bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-blue-600">Create Powerful AI Instructions</h1>
-          <p className="text-gray-600 max-w-2xl mx-auto">
-            Use proven frameworks and Gemini AI to generate effective instructions that guide AI behavior with precision and clarity
-          </p>
-          <div className="mt-4 flex flex-wrap gap-2 justify-center">
-            <ApiKeyDialog onApiKeySet={() => setHasApiKey(true)} />
-            <SystemInstructionDialog onSystemInstructionSet={() => setHasSystemInstruction(true)} />
-          </div>
-        </section>
+    <div className="container mx-auto max-w-7xl py-4 px-4">
+      {!isAuthenticated && (
+        <>
+          <ApiKeyDialog
+            open={apiKeyDialogOpen}
+            onOpenChange={setApiKeyDialogOpen}
+            onApiKeySubmit={handleApiKeySubmit}
+          />
+          <PaymentDialog
+            open={paymentDialogOpen}
+            onOpenChange={setPaymentDialogOpen}
+            onPaymentComplete={handlePaymentComplete}
+          />
+        </>
+      )}
 
-        {!hasApiKey && (
-          <div className="mb-6 flex items-center p-4 bg-amber-50 border border-amber-200 rounded-lg">
-            <AlertCircle className="text-amber-500 mr-2 flex-shrink-0" />
-            <p className="text-amber-700">
-              To use instruction generation features, please set your Gemini API key using the button above.
+      <header className="mb-8">
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="flex flex-col sm:flex-row justify-between items-center"
+        >
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">
+              PromptCraft<span className="text-blue-600">AI</span>
+            </h1>
+            <p className="text-gray-500 mt-1 text-sm">
+              Advanced prompt engineering for AI models
             </p>
           </div>
-        )}
+          <div className="flex items-center gap-2 mt-4 sm:mt-0">
+            <SystemInstructionDialog onSystemInstructionSet={handleSystemInstructionSet} />
+            <Button variant="outline" className="gap-2">
+              <Heart size={16} className="text-red-500" />
+              Favorites
+            </Button>
+            <Button className="gap-2 bg-gradient-to-r from-blue-600 to-indigo-600">
+              <Zap size={16} />
+              Upgrade Pro
+            </Button>
+          </div>
+        </motion.div>
+      </header>
 
-        <Card className="p-6 shadow-xl border-0 bg-white/90 backdrop-blur-sm rounded-xl">
-          <Tabs defaultValue="create" className="w-full">
-            <TabsList className="grid grid-cols-4 mb-6 p-1 bg-gray-100 rounded-lg">
-              <TabsTrigger value="create" className="rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm">Create Instruction</TabsTrigger>
-              <TabsTrigger value="templates" className="rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm">Templates</TabsTrigger>
-              <TabsTrigger value="strategies" className="rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm">Strategies</TabsTrigger>
-              <TabsTrigger value="saved" className="rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm">Saved Instructions</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="create" className="space-y-6">
-              <div className="grid md:grid-cols-2 gap-6">
-                <div className="space-y-5">
-                  <div className="flex items-center space-x-2 bg-blue-50 p-4 rounded-lg border border-blue-100">
-                    <Info size={22} className="text-blue-600 flex-shrink-0" />
-                    <p className="text-sm text-blue-700">
-                      Select a framework and provide details about how you want the AI to behave. 
-                      The generated instruction will help guide AI models to produce better responses.
-                    </p>
-                  </div>
-                  
-                  <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Select Framework
-                    </label>
-                    <FrameworkSelector selectedFramework={selectedFramework} setSelectedFramework={setSelectedFramework} />
-                  </div>
-                  
-                  <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
-                    <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
-                      <span>Instruction Prompt</span>
-                      <Lightbulb size={16} className="text-amber-500 ml-2" />
-                    </label>
-                    <Textarea 
-                      placeholder="Enter details about how you want the AI to behave..." 
-                      className="min-h-[150px] resize-y border-gray-200 focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50" 
-                      value={instruction} 
-                      onChange={e => setInstruction(e.target.value)} 
-                    />
-                  </div>
-                  
-                  <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-sm font-medium text-gray-700 flex items-center gap-1">
-                        <FileCode size={16} />
-                        Function Calling Tools
-                      </h3>
-                    </div>
-                    <FunctionCallingTools 
-                      onAddTool={handleAddTool} 
-                      onRemoveTool={handleRemoveTool}
-                      tools={tools} 
-                    />
-                  </div>
-                  
-                  <InstructionBuilder framework={selectedFramework} setInstruction={setInstruction} />
-                  
-                  <div className="flex flex-wrap gap-3">
-                    <Button 
-                      onClick={generateInstruction} 
-                      disabled={isGenerating || !hasApiKey} 
-                      className="bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white shadow-md hover:shadow-lg transition-all duration-200 flex gap-2"
-                    >
-                      <Sparkles size={18} />
-                      {isGenerating ? "Generating..." : "Generate Instructions"}
-                    </Button>
-                    
-                    <Button 
-                      variant="outline" 
-                      onClick={copyToClipboard} 
-                      disabled={!(isStreamingEnabled() ? streamingContent : generatedInstruction)} 
-                      className="border-gray-300 hover:bg-gray-50 flex gap-2"
-                    >
-                      <Copy size={18} />
-                      Copy to Clipboard
-                    </Button>
+      <Tabs defaultValue="builder" className="mb-8">
+        <TabsList className="mb-4">
+          <TabsTrigger value="builder" className="gap-2">
+            <Code size={16} />
+            Prompt Builder
+          </TabsTrigger>
+          <TabsTrigger value="saved" className="gap-2">
+            <Heart size={16} />
+            Saved Instructions
+          </TabsTrigger>
+          <TabsTrigger value="security" className="gap-2">
+            <Lock size={16} />
+            Security & Access
+          </TabsTrigger>
+          <TabsTrigger value="promptops" className="gap-2">
+            <Server size={16} />
+            PromptOps
+          </TabsTrigger>
+        </TabsList>
 
-                    {(isStreamingEnabled() ? streamingContent : generatedInstruction) && (
-                      <SaveInstructionDialog 
-                        instruction={isStreamingEnabled() ? streamingContent : generatedInstruction} 
-                        framework={selectedFramework}
-                      />
-                    )}
-                  </div>
-                </div>
-                
-                <div>
-                  <OutputPreview 
-                    generatedInstruction={generatedInstruction} 
-                    isGenerating={isGenerating} 
-                    streamingContent={streamingContent}
-                    isStreaming={isStreamingEnabled()}
+        <TabsContent value="builder">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="space-y-6">
+              <Card>
+                <CardContent className="p-6">
+                  <FrameworkSelector
+                    selectedFramework={framework}
+                    onSelect={setFramework}
                   />
-                </div>
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="templates">
-              <PromptCollection setInstruction={setInstruction} setSelectedFramework={setSelectedFramework} />
-            </TabsContent>
-            
-            <TabsContent value="strategies">
-              <PromptStrategies setInstruction={setInstruction} />
-            </TabsContent>
-            
-            <TabsContent value="saved">
-              <SavedInstructions />
-            </TabsContent>
-          </Tabs>
-        </Card>
+                </CardContent>
+              </Card>
 
-        <div className="mt-12 grid md:grid-cols-4 gap-6">
-          <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-200">
-            <div className="bg-blue-50 p-2 rounded-full w-10 h-10 flex items-center justify-center mb-3">
-              <Sparkles className="text-blue-500" size={18} />
+              <Card className="overflow-hidden">
+                <CardContent className="p-0">
+                  <InstructionBuilder
+                    framework={framework}
+                    instruction={instruction}
+                    setInstruction={setInstruction}
+                    onGenerate={setOutput}
+                  />
+                </CardContent>
+              </Card>
+
+              <div className="flex justify-end">
+                <SaveInstructionDialog 
+                  instruction={instruction} 
+                  framework={framework} 
+                />
+              </div>
             </div>
-            <h3 className="text-lg font-medium text-gray-800 mb-2">Framework-Based</h3>
-            <p className="text-gray-600 text-sm">Create AI instructions using proven frameworks designed for optimal AI performance.</p>
+
+            <Card className="h-full">
+              <CardContent className="p-6 h-full">
+                <OutputPreview output={output} />
+              </CardContent>
+            </Card>
           </div>
-          
-          <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-200">
-            <div className="bg-amber-50 p-2 rounded-full w-10 h-10 flex items-center justify-center mb-3">
-              <Lightbulb className="text-amber-500" size={18} />
-            </div>
-            <h3 className="text-lg font-medium text-gray-800 mb-2">Ready Templates</h3>
-            <p className="text-gray-600 text-sm">Access pre-made templates for common AI instruction scenarios and use cases.</p>
+        </TabsContent>
+
+        <TabsContent value="saved">
+          <Card>
+            <CardContent className="p-6">
+              <SavedInstructions />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="security">
+          <SecuritySettings />
+        </TabsContent>
+
+        <TabsContent value="promptops">
+          <PromptOpsSettings />
+        </TabsContent>
+      </Tabs>
+
+      <footer className="mt-16 border-t pt-6 text-center text-sm text-gray-500">
+        <div className="flex flex-col sm:flex-row justify-between items-center">
+          <p>&copy; 2025 PromptCraftAI. All rights reserved.</p>
+          <div className="flex gap-4 mt-4 sm:mt-0">
+            <a href="#" className="hover:text-blue-600 flex items-center gap-1">
+              Documentation <ArrowUpRight size={14} />
+            </a>
+            <a href="#" className="hover:text-blue-600 flex items-center gap-1">
+              API Reference <ArrowUpRight size={14} />
+            </a>
+            <a href="#" className="hover:text-blue-600 flex items-center gap-1">
+              Support <ArrowUpRight size={14} />
+            </a>
           </div>
-          
-          <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-200">
-            <div className="bg-indigo-50 p-2 rounded-full w-10 h-10 flex items-center justify-center mb-3">
-              <FileCode className="text-indigo-600" size={18} />
-            </div>
-            <h3 className="text-lg font-medium text-gray-800 mb-2">Prompt Strategies</h3>
-            <p className="text-gray-600 text-sm">Leverage proven prompting techniques to maximize AI capabilities.</p>
-          </div>
-          
-          <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-200">
-            <div className="bg-green-50 p-2 rounded-full w-10 h-10 flex items-center justify-center mb-3">
-              <FileTextIcon className="text-green-500" size={18} />
-            </div>
-            <h3 className="text-lg font-medium text-gray-800 mb-2">Save & Reuse</h3>
-            <p className="text-gray-600 text-sm">Store your custom instructions for quick access and future reference.</p>
-          </div>
-        </div>
-      </main>
-      
-      <footer className="bg-white border-t border-gray-200 py-6 mt-12">
-        <div className="container mx-auto px-4 text-center">
-          <p className="text-gray-500 text-sm">InstructAI - System Instruction Generator © 2025</p>
-          <p className="mt-1 text-gray-400 text-xs">Powered by Gemini AI</p>
         </div>
       </footer>
-
-      <PaymentDialog 
-        open={showPaymentDialog} 
-        onOpenChange={setShowPaymentDialog} 
-        onPaymentComplete={handlePaymentComplete} 
-      />
     </div>
   );
-};
-
-export default Index;
+}
