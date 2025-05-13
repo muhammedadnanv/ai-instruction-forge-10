@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -13,7 +12,7 @@ import PromptCollection from "@/components/PromptCollection";
 import SavedInstructions from "@/components/SavedInstructions";
 import SaveInstructionDialog from "@/components/SaveInstructionDialog";
 import { useToast } from "@/hooks/use-toast";
-import { Sparkles, Copy, Lightbulb, Info } from "lucide-react";
+import { Sparkles, Copy, Lightbulb, Info, FileText } from "lucide-react";
 
 const Index = () => {
   const [selectedFramework, setSelectedFramework] = useState("ACT");
