@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { toast } from "sonner";
+import { useToast } from "@/hooks/use-toast";
 import InstructionBuilder from "@/components/InstructionBuilder";
 import FrameworkSelector from "@/components/FrameworkSelector";
 import Header from "@/components/Header";
@@ -15,7 +15,7 @@ import SaveInstructionDialog from "@/components/SaveInstructionDialog";
 import ApiKeyDialog from "@/components/ApiKeyDialog";
 import SystemInstructionDialog from "@/components/SystemInstructionDialog";
 import FunctionCallingTools from "@/components/FunctionCallingTools";
-import { useToast } from "@/hooks/use-toast";
+import PaymentDialog from "@/components/PaymentDialog";
 import { Sparkles, Copy, Lightbulb, Info, FileText as FileTextIcon, AlertCircle, FileCode } from "lucide-react";
 import geminiService, { GeminiTool } from "@/services/geminiService";
 
@@ -28,6 +28,7 @@ const Index = () => {
   const [hasApiKey, setHasApiKey] = useState(false);
   const [hasSystemInstruction, setHasSystemInstruction] = useState(false);
   const [tools, setTools] = useState<GeminiTool[]>([]);
+  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   const { toast } = useToast();
 
   // Check if streaming is enabled
@@ -45,6 +46,11 @@ const Index = () => {
     setHasSystemInstruction(!!systemInstruction);
   }, []);
 
+  const checkPaymentStatus = () => {
+    const paymentVerified = localStorage.getItem('payment_verified') === 'true';
+    return paymentVerified;
+  };
+
   const generateInstruction = async () => {
     if (!geminiService.getApiKey()) {
       toast({
@@ -52,6 +58,12 @@ const Index = () => {
         description: "Please set your Gemini API key first",
         variant: "destructive"
       });
+      return;
+    }
+
+    // Check payment status
+    if (!checkPaymentStatus()) {
+      setShowPaymentDialog(true);
       return;
     }
 
@@ -125,6 +137,14 @@ const Index = () => {
       console.error("Error generating instruction:", error);
       setIsGenerating(false);
     }
+  };
+
+  const handlePaymentComplete = () => {
+    // After payment is complete, continue with instruction generation
+    toast({
+      title: "Payment Successful",
+      description: "Thank you for your payment! You can now use all features."
+    });
   };
 
   const copyToClipboard = () => {
@@ -329,6 +349,12 @@ const Index = () => {
           <p className="mt-1 text-gray-400 text-xs">Powered by Gemini AI</p>
         </div>
       </footer>
+
+      <PaymentDialog 
+        open={showPaymentDialog} 
+        onOpenChange={setShowPaymentDialog} 
+        onPaymentComplete={handlePaymentComplete} 
+      />
     </div>
   );
 };

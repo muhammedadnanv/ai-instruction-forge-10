@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Key } from "lucide-react";
 import geminiService from "@/services/geminiService";
+import PaymentDialog from "./PaymentDialog";
 
 interface ApiKeyDialogProps {
   onApiKeySet: () => void;
@@ -14,12 +15,18 @@ interface ApiKeyDialogProps {
 const ApiKeyDialog = ({ onApiKeySet }: ApiKeyDialogProps) => {
   const [apiKey, setApiKey] = useState("");
   const [open, setOpen] = useState(false);
+  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   const { toast } = useToast();
   const [hasStoredKey, setHasStoredKey] = useState(false);
+  const [hasPaid, setHasPaid] = useState(false);
 
   useEffect(() => {
     const storedKey = geminiService.getApiKey();
     setHasStoredKey(!!storedKey);
+    
+    // Check if payment has been made
+    const paymentVerified = localStorage.getItem('payment_verified') === 'true';
+    setHasPaid(paymentVerified);
   }, []);
 
   const handleSaveApiKey = () => {
@@ -35,12 +42,14 @@ const ApiKeyDialog = ({ onApiKeySet }: ApiKeyDialogProps) => {
     try {
       geminiService.setApiKey(apiKey.trim());
       setHasStoredKey(true);
-      toast({
-        title: "API Key Saved",
-        description: "Your Gemini API key has been saved"
-      });
-      onApiKeySet();
-      setOpen(false);
+      
+      // If user hasn't paid, show payment dialog
+      if (!hasPaid) {
+        setShowPaymentDialog(true);
+      } else {
+        // If already paid, just complete the flow
+        completeSetup();
+      }
     } catch (error) {
       toast({
         title: "Error Saving API Key",
@@ -49,42 +58,64 @@ const ApiKeyDialog = ({ onApiKeySet }: ApiKeyDialogProps) => {
       });
     }
   };
+  
+  const completeSetup = () => {
+    toast({
+      title: "API Key Saved",
+      description: "Your Gemini API key has been saved"
+    });
+    onApiKeySet();
+    setOpen(false);
+  };
+
+  const handlePaymentComplete = () => {
+    setHasPaid(true);
+    completeSetup();
+  };
 
   const buttonLabel = hasStoredKey ? "Update API Key" : "Set API Key";
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant={hasStoredKey ? "outline" : "default"} className="gap-2">
-          <Key size={16} />
-          {buttonLabel}
-        </Button>
-      </DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Gemini API Key</DialogTitle>
-          <DialogDescription>
-            Enter your Gemini API key to use AI instruction generation features.
-            You can get a Gemini API key from the <a href="https://makersuite.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">Google AI Studio</a>.
-          </DialogDescription>
-        </DialogHeader>
-        
-        <div className="py-4">
-          <Input
-            type="password"
-            placeholder="Enter your Gemini API key"
-            value={apiKey}
-            onChange={(e) => setApiKey(e.target.value)}
-            className="w-full"
-          />
-        </div>
-        
-        <DialogFooter>
-          <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-          <Button onClick={handleSaveApiKey}>Save API Key</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    <>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogTrigger asChild>
+          <Button variant={hasStoredKey ? "outline" : "default"} className="gap-2">
+            <Key size={16} />
+            {buttonLabel}
+          </Button>
+        </DialogTrigger>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Gemini API Key</DialogTitle>
+            <DialogDescription>
+              Enter your Gemini API key to use AI instruction generation features.
+              You can get a Gemini API key from the <a href="https://makersuite.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">Google AI Studio</a>.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="py-4">
+            <Input
+              type="password"
+              placeholder="Enter your Gemini API key"
+              value={apiKey}
+              onChange={(e) => setApiKey(e.target.value)}
+              className="w-full"
+            />
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+            <Button onClick={handleSaveApiKey}>Save API Key</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      <PaymentDialog 
+        open={showPaymentDialog} 
+        onOpenChange={setShowPaymentDialog} 
+        onPaymentComplete={handlePaymentComplete} 
+      />
+    </>
   );
 };
 
