@@ -1,4 +1,5 @@
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -11,17 +12,35 @@ import OutputPreview from "@/components/OutputPreview";
 import PromptCollection from "@/components/PromptCollection";
 import SavedInstructions from "@/components/SavedInstructions";
 import SaveInstructionDialog from "@/components/SaveInstructionDialog";
+import ApiKeyDialog from "@/components/ApiKeyDialog";
 import { useToast } from "@/hooks/use-toast";
-import { Sparkles, Copy, Lightbulb, Info, FileText } from "lucide-react";
+import { Sparkles, Copy, Lightbulb, Info, FileText, AlertCircle } from "lucide-react";
+import geminiService from "@/services/geminiService";
 
 const Index = () => {
   const [selectedFramework, setSelectedFramework] = useState("ACT");
   const [instruction, setInstruction] = useState("");
   const [generatedInstruction, setGeneratedInstruction] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [hasApiKey, setHasApiKey] = useState(false);
   const { toast } = useToast();
 
+  useEffect(() => {
+    // Check if API key is already set
+    const apiKey = geminiService.getApiKey();
+    setHasApiKey(!!apiKey);
+  }, []);
+
   const generateInstruction = async () => {
+    if (!geminiService.getApiKey()) {
+      toast({
+        title: "API Key Required",
+        description: "Please set your Gemini API key first",
+        variant: "destructive"
+      });
+      return;
+    }
+
     if (!instruction.trim()) {
       toast({
         title: "Error",
@@ -30,14 +49,15 @@ const Index = () => {
       });
       return;
     }
+
     setIsGenerating(true);
     try {
-      // In a real implementation, this would call the Gemini API
-      // For now, we'll simulate a response
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      const frameworkPrefix = getFrameworkPrefix(selectedFramework);
-      const generatedText = `${frameworkPrefix}\n\n${instruction}\n\nYou are an AI assistant that helps with ${instruction.split(' ').slice(0, 3).join(' ')}... and follows these principles:\n\n- Respond concisely and accurately\n- Stay on topic and relevant to user queries\n- Provide helpful information without unnecessary details\n- Maintain a professional, friendly tone`;
-      setGeneratedInstruction(generatedText);
+      const response = await geminiService.generateInstruction({
+        prompt: instruction,
+        framework: selectedFramework
+      });
+      
+      setGeneratedInstruction(response.generatedText);
       toast({
         title: "Success",
         description: "AI instruction generated successfully!"
@@ -45,29 +65,13 @@ const Index = () => {
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to generate instruction. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to generate instruction. Please try again.",
         variant: "destructive"
       });
       console.error("Error generating instruction:", error);
     } finally {
       setIsGenerating(false);
     }
-  };
-
-  const getFrameworkPrefix = (framework: string) => {
-    const frameworks: Record<string, string> = {
-      "ACT": "# ACT Framework (Action, Context, Target)",
-      "COT": "# Chain of Thought Framework",
-      "ReACT": "# ReACT Framework (Reason + Act)",
-      "TREE": "# TREE Framework (Tool-Reasoning Enhanced Execution)",
-      "SCQA": "# SCQA Framework (Situation, Complication, Question, Answer)",
-      "OODA": "# OODA Framework (Observe, Orient, Decide, Act)",
-      "PROMPT": "# PROMPT Framework (Persona, Role, Objective, Method, Process, Tone)",
-      "MOT": "# MOT Framework (Mode, Objective, Type)",
-      "PEEL": "# PEEL Framework (Point, Evidence, Explain, Link)",
-      "CRISP": "# CRISP Framework (Context, Request, Instruction, Style, Parameters)"
-    };
-    return frameworks[framework] || "# Custom Framework";
   };
 
   const copyToClipboard = () => {
@@ -94,9 +98,21 @@ const Index = () => {
         <section className="mb-8 text-center">
           <h1 className="text-3xl md:text-5xl font-bold mb-3 bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-blue-600">Create Powerful AI Instructions</h1>
           <p className="text-gray-600 max-w-2xl mx-auto">
-            Use proven frameworks to generate effective instructions that guide AI behavior with precision and clarity
+            Use proven frameworks and Gemini AI to generate effective instructions that guide AI behavior with precision and clarity
           </p>
+          <div className="mt-4">
+            <ApiKeyDialog onApiKeySet={() => setHasApiKey(true)} />
+          </div>
         </section>
+
+        {!hasApiKey && (
+          <div className="mb-6 flex items-center p-4 bg-amber-50 border border-amber-200 rounded-lg">
+            <AlertCircle className="text-amber-500 mr-2 flex-shrink-0" />
+            <p className="text-amber-700">
+              To use instruction generation features, please set your Gemini API key using the button above.
+            </p>
+          </div>
+        )}
 
         <Card className="p-6 shadow-xl border-0 bg-white/90 backdrop-blur-sm rounded-xl">
           <Tabs defaultValue="create" className="w-full">
@@ -142,7 +158,7 @@ const Index = () => {
                   <div className="flex flex-wrap gap-3">
                     <Button 
                       onClick={generateInstruction} 
-                      disabled={isGenerating} 
+                      disabled={isGenerating || !hasApiKey} 
                       className="bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white shadow-md hover:shadow-lg transition-all duration-200 flex gap-2"
                     >
                       <Sparkles size={18} />
@@ -214,7 +230,7 @@ const Index = () => {
       <footer className="bg-white border-t border-gray-200 py-6 mt-12">
         <div className="container mx-auto px-4 text-center">
           <p className="text-gray-500 text-sm">InstructAI - System Instruction Generator © 2025</p>
-          <p className="mt-1 text-gray-400 text-xs">Powered by Muhammed Adnan</p>
+          <p className="mt-1 text-gray-400 text-xs">Powered by Gemini AI</p>
         </div>
       </footer>
     </div>

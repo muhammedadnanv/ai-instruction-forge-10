@@ -1,5 +1,5 @@
 
-// This is a mock service for now, to be replaced with actual Gemini API integration
+// Gemini API service for generating AI instructions
 
 export interface GeminiRequest {
   prompt: string;
@@ -14,69 +14,101 @@ export interface GeminiResponse {
   timestamp: string;
 }
 
-export const generateInstruction = async (request: GeminiRequest): Promise<GeminiResponse> => {
-  // In a real implementation, this would be an actual API call to Gemini
-  // For demonstration purposes, we'll simulate a response
-  
-  console.log("Generating instruction with request:", request);
-  
-  // Simulate API delay
-  await new Promise(resolve => setTimeout(resolve, 1500));
-  
-  const frameworkTemplates: Record<string, string> = {
-    "ACT": `# AI System Instruction: ${request.framework} Framework
+class GeminiService {
+  private apiKey: string | null = null;
+  private readonly API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent";
 
-## Action:
-- Provide informative and helpful responses to user queries
-- Generate content based on the following parameters: ${request.prompt}
+  setApiKey(key: string) {
+    this.apiKey = key;
+    // Save to localStorage for persistence
+    localStorage.setItem('gemini_api_key', key);
+  }
 
-## Context:
-- You are an AI assistant designed to help users with their tasks
-- You should use appropriate tone and style for each interaction
+  getApiKey(): string | null {
+    if (!this.apiKey) {
+      // Try to load from localStorage if not set
+      this.apiKey = localStorage.getItem('gemini_api_key');
+    }
+    return this.apiKey;
+  }
 
-## Target:
-- Support users in achieving their goals efficiently
-- Maintain professionalism and accuracy in all responses`,
+  async generateInstruction(request: GeminiRequest): Promise<GeminiResponse> {
+    if (!this.apiKey) {
+      throw new Error("API key not set. Please set your Gemini API key first.");
+    }
 
-    "COT": `# AI System Instruction: Chain of Thought Framework
+    const frameworkPrompt = this.getFrameworkPrompt(request.framework);
+    
+    const promptText = `
+${frameworkPrompt}
 
-When responding to queries about ${request.prompt}, follow these steps:
+User instruction: ${request.prompt}
 
-1. First, understand the key components of the request
-2. Consider different approaches to solving the problem
-3. Reason through each step logically
-4. Arrive at a comprehensive answer
-5. Explain your reasoning process transparently`,
+Generate a detailed AI system instruction using the ${request.framework} framework based on the user's request.
+Make it clear, structured, and comprehensive.
+`;
 
-    "ReACT": `# AI System Instruction: Reason + Act Framework
+    try {
+      const response = await fetch(`${this.API_URL}?key=${this.apiKey}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                { text: promptText }
+              ]
+            }
+          ],
+          generationConfig: {
+            temperature: 0.7,
+            topK: 40,
+            topP: 0.95,
+            maxOutputTokens: 1000,
+          }
+        })
+      });
 
-When handling tasks related to ${request.prompt}:
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`Gemini API error: ${errorData.error?.message || response.statusText}`);
+      }
 
-## Observation:
-- Note all relevant information provided by the user
-- Identify the core problem that needs to be solved
+      const data = await response.json();
+      const generatedText = data.candidates[0]?.content?.parts[0]?.text || "No text generated";
 
-## Reasoning:
-- Consider different approaches to the problem
-- Evaluate pros and cons of each approach
-- Select the most effective solution
+      return {
+        generatedText,
+        requestId: `gemini-req-${Date.now()}`,
+        model: "gemini-pro",
+        timestamp: new Date().toISOString()
+      };
+    } catch (error) {
+      console.error("Error calling Gemini API:", error);
+      throw error;
+    }
+  }
 
-## Action:
-- Implement the chosen solution clearly and efficiently
-- Provide actionable next steps when appropriate`,
-  };
-  
-  const generatedText = frameworkTemplates[request.framework] || 
-    `# AI System Instruction: Custom Framework\n\n${request.prompt}\n\nAs an AI assistant, you should:\n- Respond to user queries helpfully and accurately\n- Maintain a professional tone\n- Provide relevant information`;
-  
-  return {
-    generatedText,
-    requestId: `mock-req-${Date.now()}`,
-    model: "gemini-pro-simulate",
-    timestamp: new Date().toISOString()
-  };
-};
+  private getFrameworkPrompt(framework: string): string {
+    const frameworkPrompts: Record<string, string> = {
+      "ACT": "ACT Framework (Action, Context, Target) is used to structure AI instructions by clearly defining what actions the AI should perform, in what context, and for what target audience or purpose.",
+      "COT": "Chain of Thought Framework promotes step-by-step reasoning in AI systems, breaking complex tasks into a sequence of logical steps.",
+      "ReACT": "ReACT Framework (Reason + Act) guides AI to first reason about a situation and then take appropriate action based on that reasoning.",
+      "TREE": "TREE Framework (Tool-Reasoning Enhanced Execution) helps AI select and use appropriate tools with clear reasoning.",
+      "SCQA": "SCQA Framework (Situation, Complication, Question, Answer) structures problem-solving by defining the current situation, the complication that arises, the question this raises, and the answer/solution.",
+      "OODA": "OODA Framework (Observe, Orient, Decide, Act) is a decision-making cycle that guides AI through observing data, orienting to its meaning, deciding on action, and executing.",
+      "PROMPT": "PROMPT Framework (Persona, Role, Objective, Method, Process, Tone) defines who the AI should be, what role it serves, what it aims to achieve, and how it should communicate.",
+      "MOT": "MOT Framework (Mode, Objective, Type) specifies the AI's operating mode, its objective, and the type of interaction or output expected.",
+      "PEEL": "PEEL Framework (Point, Evidence, Explain, Link) structures explanations by making a clear point, providing evidence, explaining the connection, and linking to the broader context.",
+      "CRISP": "CRISP Framework (Context, Request, Instruction, Style, Parameters) provides complete context for AI tasks, clear requests, specific instructions, preferred style, and technical parameters."
+    };
 
-export default {
-  generateInstruction
-};
+    return frameworkPrompts[framework] || `${framework} Framework helps structure AI instructions effectively.`;
+  }
+}
+
+// Create and export singleton instance
+const geminiService = new GeminiService();
+export default geminiService;
