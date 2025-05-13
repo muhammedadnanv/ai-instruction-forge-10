@@ -10,8 +10,10 @@ import FrameworkSelector from "@/components/FrameworkSelector";
 import Header from "@/components/Header";
 import OutputPreview from "@/components/OutputPreview";
 import PromptCollection from "@/components/PromptCollection";
-import { useToast } from "@/components/ui/use-toast";
-import { Sparkles, Copy, Lightbulb, Save, Info } from "lucide-react";
+import SavedInstructions from "@/components/SavedInstructions";
+import SaveInstructionDialog from "@/components/SaveInstructionDialog";
+import { useToast } from "@/hooks/use-toast";
+import { Sparkles, Copy, Lightbulb, Info } from "lucide-react";
 
 const Index = () => {
   const [selectedFramework, setSelectedFramework] = useState("ACT");
@@ -86,12 +88,12 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-indigo-50 to-blue-50">
+    <div className="min-h-screen bg-gradient-to-b from-indigo-50 via-blue-50 to-white">
       <Header />
       
       <main className="container py-8 px-4 mx-auto">
         <section className="mb-8 text-center">
-          <h1 className="text-3xl md:text-4xl font-bold text-gray-800 mb-3 bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-blue-600">Create Powerful AI Instructions</h1>
+          <h1 className="text-3xl md:text-5xl font-bold mb-3 bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-blue-600">Create Powerful AI Instructions</h1>
           <p className="text-gray-600 max-w-2xl mx-auto">
             Use proven frameworks to generate effective instructions that guide AI behavior with precision and clarity
           </p>
@@ -108,9 +110,9 @@ const Index = () => {
             <TabsContent value="create" className="space-y-6">
               <div className="grid md:grid-cols-2 gap-6">
                 <div className="space-y-5">
-                  <div className="flex items-center space-x-2 bg-indigo-50 p-4 rounded-lg border border-indigo-100">
-                    <Info size={22} className="text-indigo-600 flex-shrink-0" />
-                    <p className="text-sm text-indigo-700">
+                  <div className="flex items-center space-x-2 bg-blue-50 p-4 rounded-lg border border-blue-100">
+                    <Info size={22} className="text-blue-600 flex-shrink-0" />
+                    <p className="text-sm text-blue-700">
                       Select a framework and provide details about how you want the AI to behave. 
                       The generated instruction will help guide AI models to produce better responses.
                     </p>
@@ -159,21 +161,15 @@ const Index = () => {
                     </Button>
 
                     {generatedInstruction && (
-                      <Button
-                        variant="outline"
-                        className="border-gray-300 hover:bg-gray-50 flex gap-2 text-indigo-600"
-                      >
-                        <Save size={18} />
-                        Save Instruction
-                      </Button>
+                      <SaveInstructionDialog 
+                        instruction={generatedInstruction} 
+                        framework={selectedFramework}
+                      />
                     )}
                   </div>
                 </div>
                 
                 <div>
-                  <div className="flex items-center space-x-2 mb-4">
-                    <h2 className="text-xl font-semibold text-gray-800">Generated Instruction</h2>
-                  </div>
                   <OutputPreview generatedInstruction={generatedInstruction} isGenerating={isGenerating} />
                 </div>
               </div>
@@ -184,10 +180,7 @@ const Index = () => {
             </TabsContent>
             
             <TabsContent value="saved">
-              <div className="text-center py-10">
-                <h3 className="text-xl font-medium text-gray-500">Saved instructions will appear here</h3>
-                <p className="text-gray-400 mt-2">Generate and save instructions to access them later</p>
-              </div>
+              <SavedInstructions />
             </TabsContent>
           </Tabs>
         </Card>
@@ -211,7 +204,7 @@ const Index = () => {
           
           <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-200">
             <div className="bg-green-50 p-2 rounded-full w-10 h-10 flex items-center justify-center mb-3">
-              <Save className="text-green-500" size={18} />
+              <FileText className="text-green-500" size={18} />
             </div>
             <h3 className="text-lg font-medium text-gray-800 mb-2">Save & Reuse</h3>
             <p className="text-gray-600 text-sm">Store your custom instructions for quick access and future reference.</p>
@@ -228,4 +221,5 @@ const Index = () => {
     </div>
   );
 };
+
 export default Index;
