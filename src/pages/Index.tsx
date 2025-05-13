@@ -9,6 +9,7 @@ import FrameworkSelector from "@/components/FrameworkSelector";
 import Header from "@/components/Header";
 import OutputPreview from "@/components/OutputPreview";
 import PromptCollection from "@/components/PromptCollection";
+import PromptStrategies from "@/components/PromptStrategies";
 import SavedInstructions from "@/components/SavedInstructions";
 import SaveInstructionDialog from "@/components/SaveInstructionDialog";
 import ApiKeyDialog from "@/components/ApiKeyDialog";
@@ -179,9 +180,10 @@ const Index = () => {
 
         <Card className="p-6 shadow-xl border-0 bg-white/90 backdrop-blur-sm rounded-xl">
           <Tabs defaultValue="create" className="w-full">
-            <TabsList className="grid grid-cols-3 mb-6 p-1 bg-gray-100 rounded-lg">
+            <TabsList className="grid grid-cols-4 mb-6 p-1 bg-gray-100 rounded-lg">
               <TabsTrigger value="create" className="rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm">Create Instruction</TabsTrigger>
               <TabsTrigger value="templates" className="rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm">Templates</TabsTrigger>
+              <TabsTrigger value="strategies" className="rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm">Strategies</TabsTrigger>
               <TabsTrigger value="saved" className="rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm">Saved Instructions</TabsTrigger>
             </TabsList>
             
@@ -276,13 +278,17 @@ const Index = () => {
               <PromptCollection setInstruction={setInstruction} setSelectedFramework={setSelectedFramework} />
             </TabsContent>
             
+            <TabsContent value="strategies">
+              <PromptStrategies setInstruction={setInstruction} />
+            </TabsContent>
+            
             <TabsContent value="saved">
               <SavedInstructions />
             </TabsContent>
           </Tabs>
         </Card>
 
-        <div className="mt-12 grid md:grid-cols-3 gap-6">
+        <div className="mt-12 grid md:grid-cols-4 gap-6">
           <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-200">
             <div className="bg-blue-50 p-2 rounded-full w-10 h-10 flex items-center justify-center mb-3">
               <Sparkles className="text-blue-500" size={18} />
@@ -297,6 +303,14 @@ const Index = () => {
             </div>
             <h3 className="text-lg font-medium text-gray-800 mb-2">Ready Templates</h3>
             <p className="text-gray-600 text-sm">Access pre-made templates for common AI instruction scenarios and use cases.</p>
+          </div>
+          
+          <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-200">
+            <div className="bg-indigo-50 p-2 rounded-full w-10 h-10 flex items-center justify-center mb-3">
+              <FileCode className="text-indigo-600" size={18} />
+            </div>
+            <h3 className="text-lg font-medium text-gray-800 mb-2">Prompt Strategies</h3>
+            <p className="text-gray-600 text-sm">Leverage proven prompting techniques to maximize AI capabilities.</p>
           </div>
           
           <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-200">
