@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -86,7 +85,7 @@ const MultiLLMRunner = () => {
         const result = await generateInstruction({
           prompt,
           temperature: model.temperature,
-          maxOutputTokens: model.maxTokens
+          maxTokens: model.maxTokens  // Changed from maxOutputTokens to maxTokens
         });
         
         const endTime = Date.now();
