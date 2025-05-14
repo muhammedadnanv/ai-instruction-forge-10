@@ -1,9 +1,11 @@
+
 // Gemini API service for generating AI instructions
 
 export interface GeminiRequest {
   prompt: string;
   framework?: string;
   systemInstruction?: string;
+  context?: string;
   parameters?: Record<string, any>;
   tools?: GeminiTool[];
   jsonMode?: boolean;
@@ -13,7 +15,8 @@ export interface GeminiRequest {
   topK?: number;
   topP?: number;
   candidateCount?: number;
-  maxTokens?: number;  // Added this property
+  maxTokens?: number;
+  model?: string;
 }
 
 export interface GeminiResponse {
@@ -23,6 +26,22 @@ export interface GeminiResponse {
   timestamp: string;
   jsonResponse?: any;
   safetyRatings?: GeminiSafetyRating[];
+  tokenUsage?: {
+    inputTokens: number;
+    outputTokens: number;
+    totalTokens: number;
+  };
+}
+
+export interface GeminiModelConfig {
+  name: string;
+  displayName: string;
+  description: string;
+  supportedFeatures: string[];
+  maxTokens: number;
+  version: string;
+  inputModalities: string[];
+  outputModalities: string[];
 }
 
 export interface GeminiTool {
@@ -56,11 +75,66 @@ export interface BatchRequest {
   requests: GeminiRequest[];
 }
 
+// Available Gemini models
+const GEMINI_MODELS: GeminiModelConfig[] = [
+  {
+    name: "gemini-pro",
+    displayName: "Gemini Pro",
+    description: "Best for text-only tasks",
+    supportedFeatures: ["text", "function_calling", "system_instructions"],
+    maxTokens: 32768,
+    version: "1.0",
+    inputModalities: ["text"],
+    outputModalities: ["text"]
+  },
+  {
+    name: "gemini-pro-vision",
+    displayName: "Gemini Pro Vision",
+    description: "Best for text and image tasks",
+    supportedFeatures: ["text", "vision", "system_instructions"],
+    maxTokens: 16384,
+    version: "1.0",
+    inputModalities: ["text", "image"],
+    outputModalities: ["text"]
+  },
+  {
+    name: "gemini-1.5-pro",
+    displayName: "Gemini 1.5 Pro",
+    description: "Latest multi-modal model with extended context",
+    supportedFeatures: ["text", "vision", "function_calling", "system_instructions"],
+    maxTokens: 1048576, // 1M tokens
+    version: "1.5",
+    inputModalities: ["text", "image", "audio", "video"],
+    outputModalities: ["text"]
+  },
+  {
+    name: "gemini-1.5-flash",
+    displayName: "Gemini 1.5 Flash",
+    description: "Efficient and cost-effective for common tasks",
+    supportedFeatures: ["text", "vision", "function_calling", "system_instructions"],
+    maxTokens: 1048576, // 1M tokens
+    version: "1.5",
+    inputModalities: ["text", "image", "audio", "video"],
+    outputModalities: ["text"]
+  },
+  {
+    name: "gemini-2.5-pro-preview-05-06",
+    displayName: "Gemini 2.5 Pro (Preview)",
+    description: "Preview of the next generation Gemini model",
+    supportedFeatures: ["text", "vision", "function_calling", "system_instructions", "advanced_reasoning"],
+    maxTokens: 2097152, // 2M tokens
+    version: "2.5-preview",
+    inputModalities: ["text", "image", "audio", "video"],
+    outputModalities: ["text"]
+  }
+];
+
 class GeminiService {
   private apiKey: string | null = null;
-  private readonly API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent";
-  private readonly BATCH_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:batchGenerateContent";
+  private readonly API_URL = "https://generativelanguage.googleapis.com/v1beta/models";
+  private readonly BATCH_API_URL = "https://generativelanguage.googleapis.com/v1beta/models";
   private defaultSystemInstruction: string | null = null;
+  private defaultModel: string = "gemini-pro";
 
   setApiKey(key: string) {
     this.apiKey = key;
@@ -88,6 +162,26 @@ class GeminiService {
     return this.defaultSystemInstruction;
   }
 
+  setDefaultModel(model: string) {
+    this.defaultModel = model;
+    localStorage.setItem('gemini_default_model', model);
+  }
+
+  getDefaultModel(): string {
+    const storedModel = localStorage.getItem('gemini_default_model');
+    return storedModel || this.defaultModel;
+  }
+
+  async getAvailableModels(): Promise<GeminiModelConfig[]> {
+    if (!this.apiKey) {
+      throw new Error("API key not set. Please set your Gemini API key first.");
+    }
+
+    // In a production environment, you would fetch this from the Gemini API
+    // For now, we'll return our predefined list
+    return Promise.resolve(GEMINI_MODELS);
+  }
+
   async generateInstruction(request: GeminiRequest): Promise<GeminiResponse> {
     if (!this.apiKey) {
       throw new Error("API key not set. Please set your Gemini API key first.");
@@ -95,10 +189,12 @@ class GeminiService {
 
     const frameworkPrompt = request.framework ? this.getFrameworkPrompt(request.framework) : '';
     const systemInstruction = request.systemInstruction || this.defaultSystemInstruction || "";
+    const modelName = request.model || this.getDefaultModel();
     
     const promptText = request.framework ? `
 ${frameworkPrompt}
 
+${request.context ? `Context: ${request.context}\n\n` : ''}
 User instruction: ${request.prompt}
 
 Generate a detailed AI system instruction using the ${request.framework} framework based on the user's request.
@@ -107,7 +203,7 @@ ${request.language ? `Please respond in ${request.language}.` : ""}
 ` : request.prompt;
 
     try {
-      const response = await fetch(`${this.API_URL}?key=${this.apiKey}`, {
+      const response = await fetch(`${this.API_URL}/${modelName}:generateContent?key=${this.apiKey}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -146,6 +242,13 @@ ${request.language ? `Please respond in ${request.language}.` : ""}
       const functionCalls = data.candidates[0]?.content?.parts[0]?.functionCall || null;
       const safetyRatings = data.candidates[0]?.safetyRatings || [];
       
+      // Add token usage information if available
+      const tokenUsage = data.usage ? {
+        inputTokens: data.usage.promptTokenCount || 0,
+        outputTokens: data.usage.candidatesTokenCount || 0,
+        totalTokens: (data.usage.promptTokenCount || 0) + (data.usage.candidatesTokenCount || 0)
+      } : undefined;
+      
       // Handle JSON response if JSON mode is enabled
       let jsonResponse = undefined;
       if (request.jsonMode && generatedText) {
@@ -159,10 +262,11 @@ ${request.language ? `Please respond in ${request.language}.` : ""}
       return {
         generatedText,
         requestId: `gemini-req-${Date.now()}`,
-        model: "gemini-pro",
+        model: modelName,
         timestamp: new Date().toISOString(),
         jsonResponse,
-        safetyRatings
+        safetyRatings,
+        tokenUsage
       };
     } catch (error) {
       console.error("Error calling Gemini API:", error);
@@ -180,10 +284,12 @@ ${request.language ? `Please respond in ${request.language}.` : ""}
 
     const frameworkPrompt = request.framework ? this.getFrameworkPrompt(request.framework) : '';
     const systemInstruction = request.systemInstruction || this.defaultSystemInstruction || "";
+    const modelName = request.model || this.getDefaultModel();
     
     const promptText = request.framework ? `
 ${frameworkPrompt}
 
+${request.context ? `Context: ${request.context}\n\n` : ''}
 User instruction: ${request.prompt}
 
 Generate a detailed AI system instruction using the ${request.framework} framework based on the user's request.
@@ -195,7 +301,7 @@ ${request.language ? `Please respond in ${request.language}.` : ""}
       callbacks.onStart?.();
       
       // Set up streaming with fetch
-      const response = await fetch(`${this.API_URL}?key=${this.apiKey}&alt=sse`, {
+      const response = await fetch(`${this.API_URL}/${modelName}:generateContent?key=${this.apiKey}&alt=sse`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -217,7 +323,7 @@ ${request.language ? `Please respond in ${request.language}.` : ""}
             temperature: request.temperature ?? 0.7,
             topK: request.topK ?? 40,
             topP: request.topP ?? 0.95,
-            maxOutputTokens: 1000,
+            maxOutputTokens: request.maxTokens ?? 1000,
           },
           streamGenerationConfig: {
             streamType: "tokens"
@@ -277,10 +383,12 @@ ${request.language ? `Please respond in ${request.language}.` : ""}
     const formattedRequests = batchRequest.requests.map(request => {
       const frameworkPrompt = request.framework ? this.getFrameworkPrompt(request.framework) : '';
       const systemInstruction = request.systemInstruction || this.defaultSystemInstruction || "";
+      const modelName = request.model || this.getDefaultModel();
       
       const promptText = request.framework ? `
 ${frameworkPrompt}
 
+${request.context ? `Context: ${request.context}\n\n` : ''}
 User instruction: ${request.prompt}
 
 Generate a detailed AI system instruction using the ${request.framework} framework based on the user's request.
@@ -305,7 +413,7 @@ ${request.language ? `Please respond in ${request.language}.` : ""}
           temperature: request.temperature ?? 0.7,
           topK: request.topK ?? 40,
           topP: request.topP ?? 0.95,
-          maxOutputTokens: 1000,
+          maxOutputTokens: request.maxTokens ?? 1000,
           candidateCount: request.candidateCount ?? 1,
           ...(request.jsonMode && { responseSchema: { type: "json" } })
         }
@@ -313,45 +421,22 @@ ${request.language ? `Please respond in ${request.language}.` : ""}
     });
 
     try {
-      const response = await fetch(`${this.BATCH_API_URL}?key=${this.apiKey}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ requests: formattedRequests })
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(`Gemini API error: ${errorData.error?.message || response.statusText}`);
-      }
-
-      const data = await response.json();
-      
-      // Process batch responses
-      return data.candidates.map((candidate: any, index: number) => {
-        const generatedText = candidate?.content?.parts[0]?.text || "No text generated";
-        const safetyRatings = candidate?.safetyRatings || [];
-        
-        // Handle JSON if JSON mode was requested
-        let jsonResponse = undefined;
-        if (batchRequest.requests[index].jsonMode && generatedText) {
+      // Use individual requests for each prompt in the batch
+      // as the batch endpoint might not always be available
+      const results = await Promise.all(
+        batchRequest.requests.map(async (request, index) => {
           try {
-            jsonResponse = JSON.parse(generatedText);
-          } catch (e) {
-            console.warn("Error parsing JSON response for batch item:", e);
+            const modelName = request.model || this.getDefaultModel();
+            const response = await this.generateInstruction(request);
+            return response;
+          } catch (error) {
+            console.error(`Error in batch request ${index}:`, error);
+            throw error;
           }
-        }
-        
-        return {
-          generatedText,
-          requestId: `gemini-batch-req-${index}-${Date.now()}`,
-          model: "gemini-pro",
-          timestamp: new Date().toISOString(),
-          jsonResponse,
-          safetyRatings
-        };
-      });
+        })
+      );
+      
+      return results;
     } catch (error) {
       console.error("Error calling Gemini Batch API:", error);
       throw error;
@@ -365,7 +450,8 @@ ${request.language ? `Please respond in ${request.language}.` : ""}
     }
 
     try {
-      const response = await fetch(`${this.API_URL}?key=${this.apiKey}`, {
+      const modelName = this.getDefaultModel();
+      const response = await fetch(`${this.API_URL}/${modelName}:generateContent?key=${this.apiKey}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -417,7 +503,8 @@ ${request.language ? `Please respond in ${request.language}.` : ""}
     memory = [],
     tools = [],
     systemInstruction = "",
-    language
+    language,
+    model
   }: {
     initialPrompt: string;
     maxSteps?: number;
@@ -425,6 +512,7 @@ ${request.language ? `Please respond in ${request.language}.` : ""}
     tools?: GeminiTool[];
     systemInstruction?: string;
     language?: string;
+    model?: string;
   }): Promise<{finalResponse: string; memory: Array<{role: string; content: string}>}> {
     if (!this.apiKey) {
       throw new Error("API key not set. Please set your Gemini API key first.");
@@ -435,6 +523,7 @@ ${request.language ? `Please respond in ${request.language}.` : ""}
     let stepCount = 0;
     let isDone = false;
     let finalResponse = "";
+    const modelName = model || this.getDefaultModel();
     
     // Add the initial prompt to memory
     currentMemory.push({role: "user", content: initialPrompt});
@@ -460,7 +549,7 @@ ${request.language ? `Please respond in ${request.language}.` : ""}
       stepCount++;
       
       try {
-        const response = await fetch(`${this.API_URL}?key=${this.apiKey}`, {
+        const response = await fetch(`${this.API_URL}/${modelName}:generateContent?key=${this.apiKey}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -525,6 +614,7 @@ ${request.language ? `Please respond in ${request.language}.` : ""}
     };
   }
 
+  // Enhanced version that supports more framework types
   private getFrameworkPrompt(framework: string): string {
     const frameworkPrompts: Record<string, string> = {
       "ACT": "ACT Framework (Action, Context, Target) is used to structure AI instructions by clearly defining what actions the AI should perform, in what context, and for what target audience or purpose.",
@@ -536,7 +626,10 @@ ${request.language ? `Please respond in ${request.language}.` : ""}
       "PROMPT": "PROMPT Framework (Persona, Role, Objective, Method, Process, Tone) defines who the AI should be, what role it serves, what it aims to achieve, and how it should communicate.",
       "MOT": "MOT Framework (Mode, Objective, Type) specifies the AI's operating mode, its objective, and the type of interaction or output expected.",
       "PEEL": "PEEL Framework (Point, Evidence, Explain, Link) structures explanations by making a clear point, providing evidence, explaining the connection, and linking to the broader context.",
-      "CRISP": "CRISP Framework (Context, Request, Instruction, Style, Parameters) provides complete context for AI tasks, clear requests, specific instructions, preferred style, and technical parameters."
+      "CRISP": "CRISP Framework (Context, Request, Instruction, Style, Parameters) provides complete context for AI tasks, clear requests, specific instructions, preferred style, and technical parameters.",
+      "ToThePT": "To The Point (ToThePT) Framework focuses on concise, direct responses without unnecessary elaboration.",
+      "PETA": "PETA Framework (Purpose, Execution, Tone, Audience) guides AI to understand the purpose, how to execute it, what tone to use, and who the target audience is.",
+      "CLASS": "CLASS Framework (Clarify, List, Analyze, Solve, Summarize) structures problem-solving by clarifying the issue, listing options, analyzing alternatives, solving the problem, and summarizing the solution."
     };
 
     return frameworkPrompts[framework] || `${framework} Framework helps structure AI instructions effectively.`;

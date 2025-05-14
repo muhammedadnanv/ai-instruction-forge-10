@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -7,10 +6,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useGemini } from "@/hooks/use-gemini";
 import { useToast } from "@/hooks/use-toast";
-import { Code, Play, Save, FileCode, Settings, FileJson, Download, Sparkles } from "lucide-react";
+import { Code, Play, Save, FileCode, Settings, FileJson, Download, Sparkles, History } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { Slider } from "@/components/ui/slider";
 import InstructionBuilder from "@/components/InstructionBuilder";
+import ModelSelector from "@/components/ModelSelector";
+import FrameworkGuide from "@/components/FrameworkGuide";
 
 const IDEPromptEditor = () => {
   const [promptCode, setPromptCode] = useState(
@@ -32,8 +35,16 @@ Respond with clear, structured information using markdown formatting.`
   const [theme, setTheme] = useState("light");
   const [fontSize, setFontSize] = useState("14");
   const [framework, setFramework] = useState("none");
+  const [temperature, setTemperature] = useState([0.7]);
+  const [maxTokens, setMaxTokens] = useState([1000]);
+  const [selectedModel, setSelectedModel] = useState("");
+  const [promptHistory, setPromptHistory] = useState<Array<{
+    promptCode: string;
+    response: string;
+    timestamp: string;
+  }>>([]);
   
-  const { generateInstruction } = useGemini();
+  const { generateInstruction, streamInstruction, isLoading, isStreaming } = useGemini();
   const { toast } = useToast();
   
   const autoGeneratePrompt = async () => {
@@ -53,7 +64,8 @@ Respond with clear, structured information using markdown formatting.`
         Format the prompt with clear sections including system instructions, user input placeholder (use {{input}} syntax), 
         and format requirements. Make it suitable for professional prompt engineering work.`,
         temperature: 0.7,
-        framework: "CRISP"
+        framework: "CRISP",
+        model: selectedModel
       });
       
       if (result?.generatedText) {
@@ -92,18 +104,52 @@ Respond with clear, structured information using markdown formatting.`
     try {
       const processedPrompt = promptCode.replace("{{input}}", testInput);
       
-      const result = await generateInstruction({
-        prompt: processedPrompt,
-        temperature: 0.7,
-        framework: framework !== "none" ? framework : undefined
-      });
-      
-      if (result?.generatedText) {
-        setResponse(result.generatedText);
-        setActiveTab("output");
-      } else {
-        throw new Error("Failed to generate response");
-      }
+      await streamInstruction(
+        {
+          prompt: processedPrompt,
+          temperature: temperature[0],
+          maxTokens: maxTokens[0],
+          framework: framework !== "none" ? framework : undefined,
+          model: selectedModel
+        },
+        {
+          onStart: () => {
+            setResponse("");
+          },
+          onUpdate: (chunk) => {
+            setResponse(prev => prev + chunk);
+          },
+          onComplete: (fullText) => {
+            setResponse(fullText);
+            
+            // Add to history
+            const historyItem = {
+              promptCode: promptCode,
+              response: fullText,
+              timestamp: new Date().toISOString()
+            };
+            
+            setPromptHistory(prev => {
+              const newHistory = [historyItem, ...prev];
+              // Keep only last 10 items for memory management
+              if (newHistory.length > 10) {
+                return newHistory.slice(0, 10);
+              }
+              return newHistory;
+            });
+            
+            setActiveTab("output");
+          },
+          onError: (error) => {
+            console.error("Error streaming response:", error);
+            toast({
+              title: "Response Error",
+              description: error.message,
+              variant: "destructive"
+            });
+          }
+        }
+      );
     } catch (error) {
       console.error("Error running prompt:", error);
       toast({
@@ -124,7 +170,11 @@ Respond with clear, structured information using markdown formatting.`
       id: `prompt-${timestamp}`,
       name: promptName,
       code: promptCode,
-      createdAt: timestamp
+      createdAt: timestamp,
+      framework: framework,
+      temperature: temperature[0],
+      maxTokens: maxTokens[0],
+      model: selectedModel
     };
     
     savedPrompts.push(newPrompt);
@@ -164,6 +214,23 @@ export function generatePrompt(input) {
       title: "Prompt Exported",
       description: "JavaScript file downloaded successfully"
     });
+  };
+
+  const handleFrameworkSelect = (frameworkName: string) => {
+    setFramework(frameworkName);
+  };
+
+  const handleRestoreFromHistory = (index: number) => {
+    const historyItem = promptHistory[index];
+    if (historyItem) {
+      setPromptCode(historyItem.promptCode);
+      setResponse(historyItem.response);
+      
+      toast({
+        title: "History Restored",
+        description: "Previous prompt and response loaded"
+      });
+    }
   };
 
   return (
@@ -222,6 +289,10 @@ export function generatePrompt(input) {
                   <Settings className="h-4 w-4" />
                   Settings
                 </TabsTrigger>
+                <TabsTrigger value="history" className="flex items-center gap-1">
+                  <History className="h-4 w-4" />
+                  History
+                </TabsTrigger>
               </TabsList>
               <div className="flex items-center gap-2">
                 <Select value={theme} onValueChange={setTheme}>
@@ -267,6 +338,15 @@ export function generatePrompt(input) {
                 <CardContent className="p-4">
                   <div className="space-y-4">
                     <div>
+                      <h3 className="font-medium mb-2">Gemini Model</h3>
+                      <ModelSelector
+                        selectedModel={selectedModel}
+                        onModelChange={setSelectedModel}
+                        showDetails={true}
+                      />
+                    </div>
+                    
+                    <div>
                       <h3 className="font-medium mb-2">Variables</h3>
                       <p className="text-sm text-gray-500 mb-2">
                         Use {'{{variable}}'} syntax to insert dynamic content
@@ -276,31 +356,101 @@ export function generatePrompt(input) {
                       </div>
                     </div>
                     
-                    <div>
-                      <h3 className="font-medium mb-2">Framework</h3>
-                      <Select value={framework} onValueChange={setFramework}>
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Select Framework" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="none">None</SelectItem>
-                          <SelectItem value="CRISP">CRISP Framework</SelectItem>
-                          <SelectItem value="COT">Chain of Thought</SelectItem>
-                          <SelectItem value="ReACT">ReACT</SelectItem>
-                          <SelectItem value="PROMPT">PROMPT Framework</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    
-                    <div>
-                      <h3 className="font-medium mb-2">Keyboard Shortcuts</h3>
-                      <ul className="text-sm space-y-1">
-                        <li><kbd className="px-1 bg-gray-100 rounded">Ctrl+S</kbd> - Save prompt</li>
-                        <li><kbd className="px-1 bg-gray-100 rounded">Ctrl+Enter</kbd> - Run prompt</li>
-                        <li><kbd className="px-1 bg-gray-100 rounded">Ctrl+/</kbd> - Comment selection</li>
-                      </ul>
+                    <div className="space-y-4">
+                      <div>
+                        <div className="flex justify-between">
+                          <h3 className="font-medium mb-2">Framework</h3>
+                          <FrameworkGuide framework={framework} onSelect={handleFrameworkSelect} />
+                        </div>
+                        <Select value={framework} onValueChange={setFramework}>
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Select Framework" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">None</SelectItem>
+                            <SelectItem value="CRISP">CRISP Framework</SelectItem>
+                            <SelectItem value="COT">Chain of Thought</SelectItem>
+                            <SelectItem value="ReACT">ReACT</SelectItem>
+                            <SelectItem value="PROMPT">PROMPT Framework</SelectItem>
+                            <SelectItem value="ACT">ACT Framework</SelectItem>
+                            <SelectItem value="TREE">TREE Framework</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <h3 className="font-medium">Temperature: {temperature[0].toFixed(2)}</h3>
+                          <Badge variant={temperature[0] < 0.3 ? "outline" : temperature[0] > 0.7 ? "secondary" : "default"}>
+                            {temperature[0] < 0.3 ? "Precise" : temperature[0] > 0.7 ? "Creative" : "Balanced"}
+                          </Badge>
+                        </div>
+                        <Slider
+                          defaultValue={temperature}
+                          max={1}
+                          min={0}
+                          step={0.01}
+                          value={temperature}
+                          onValueChange={setTemperature}
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                          Lower values produce focused, deterministic responses. Higher values produce more creative variations.
+                        </p>
+                      </div>
+                      
+                      <div>
+                        <h3 className="font-medium mb-2">Max Tokens: {maxTokens[0]}</h3>
+                        <Slider
+                          defaultValue={maxTokens}
+                          max={2048}
+                          min={100}
+                          step={100}
+                          value={maxTokens}
+                          onValueChange={setMaxTokens}
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                          Maximum length of the generated response.
+                        </p>
+                      </div>
                     </div>
                   </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+            
+            <TabsContent value="history" className="mt-2">
+              <Card>
+                <CardContent className="p-4">
+                  <ScrollArea className="h-[400px] pr-4">
+                    {promptHistory.length > 0 ? (
+                      <div className="space-y-4">
+                        {promptHistory.map((item, index) => (
+                          <Card key={index} className="p-3 text-sm">
+                            <div className="flex justify-between mb-2">
+                              <span className="font-medium">
+                                {new Date(item.timestamp).toLocaleTimeString()}
+                              </span>
+                              <Button 
+                                size="sm" 
+                                variant="ghost"
+                                className="h-6 text-xs"
+                                onClick={() => handleRestoreFromHistory(index)}
+                              >
+                                Restore
+                              </Button>
+                            </div>
+                            <div className="text-xs line-clamp-2 text-gray-600">
+                              {item.promptCode.substring(0, 150)}...
+                            </div>
+                          </Card>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8 text-gray-500">
+                        No history yet. Run prompts to see them here.
+                      </div>
+                    )}
+                  </ScrollArea>
                 </CardContent>
               </Card>
             </TabsContent>
@@ -378,7 +528,11 @@ export function generatePrompt(input) {
                         response: response,
                         metadata: {
                           timestamp: new Date().toISOString(),
-                          name: promptName
+                          name: promptName,
+                          model: selectedModel || "default",
+                          temperature: temperature[0],
+                          maxTokens: maxTokens[0],
+                          framework: framework
                         }
                       }, null, 2) : "No data available"}
                     </pre>
