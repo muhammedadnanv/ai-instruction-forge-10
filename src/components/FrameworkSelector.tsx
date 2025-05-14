@@ -5,10 +5,10 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 
 interface FrameworkSelectorProps {
   selectedFramework: string;
-  onSelect: (framework: string) => void;
+  onFrameworkSelect: (framework: string) => void;
 }
 
-const FrameworkSelector = ({ selectedFramework, onSelect }: FrameworkSelectorProps) => {
+const FrameworkSelector = ({ selectedFramework, onFrameworkSelect }: FrameworkSelectorProps) => {
   const frameworks = [
     { 
       value: "ACT", 
@@ -68,7 +68,7 @@ const FrameworkSelector = ({ selectedFramework, onSelect }: FrameworkSelectorPro
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-2">
-        <Select value={selectedFramework} onValueChange={onSelect}>
+        <Select value={selectedFramework} onValueChange={onFrameworkSelect}>
           <SelectTrigger className="w-full">
             <SelectValue placeholder="Select Framework" />
           </SelectTrigger>

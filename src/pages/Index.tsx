@@ -1,5 +1,6 @@
 
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
@@ -18,7 +19,7 @@ import PromptOpsSettings from "@/components/PromptOpsSettings";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Index() {
-  const [framework, setFramework] = useState("openai");
+  const [framework, setFramework] = useState("ACT");
   const [instruction, setInstruction] = useState("");
   const [output, setOutput] = useState("");
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
@@ -58,7 +59,7 @@ export default function Index() {
       {!isAuthenticated && (
         <>
           <ApiKeyDialog
-            open={apiKeyDialogOpen}
+            isOpen={apiKeyDialogOpen}
             onOpenChange={setApiKeyDialogOpen}
             onApiKeySubmit={handleApiKeySubmit}
           />
@@ -86,6 +87,12 @@ export default function Index() {
             </p>
           </div>
           <div className="flex items-center gap-2 mt-4 sm:mt-0">
+            <Link to="/ai-applications">
+              <Button variant="default" className="gap-2">
+                <Zap size={16} />
+                AI Applications
+              </Button>
+            </Link>
             <SystemInstructionDialog onSystemInstructionSet={handleSystemInstructionSet} />
             <Button variant="outline" className="gap-2">
               <Heart size={16} className="text-red-500" />
@@ -126,7 +133,7 @@ export default function Index() {
                 <CardContent className="p-6">
                   <FrameworkSelector
                     selectedFramework={framework}
-                    onSelect={setFramework}
+                    onFrameworkSelect={setFramework}
                   />
                 </CardContent>
               </Card>
