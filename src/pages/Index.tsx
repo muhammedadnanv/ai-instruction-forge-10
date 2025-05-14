@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Heart, Zap, Code, Lock, Server, ArrowUpRight } from "lucide-react";
+import { Heart, Zap, Code, Lock, Server, ArrowUpRight, Lightbulb } from "lucide-react";
 import SaveInstructionDialog from "@/components/SaveInstructionDialog";
 import SystemInstructionDialog from "@/components/SystemInstructionDialog";
 import SavedInstructions from "@/components/SavedInstructions";
@@ -16,6 +16,9 @@ import ApiKeyDialog from "@/components/ApiKeyDialog";
 import PaymentDialog from "@/components/PaymentDialog";
 import SecuritySettings from "@/components/SecuritySettings";
 import PromptOpsSettings from "@/components/PromptOpsSettings";
+import PromptEngineeringGuide from "@/components/PromptEngineeringGuide";
+import PromptStrategies from "@/components/PromptStrategies";
+import PromptCollection from "@/components/PromptCollection";
 import { useToast } from "@/hooks/use-toast";
 import Header from "@/components/Header";
 
@@ -114,6 +117,10 @@ export default function Index() {
               <Code size={16} />
               <span className="whitespace-nowrap">Prompt Builder</span>
             </TabsTrigger>
+            <TabsTrigger value="engineering" className="gap-2">
+              <Lightbulb size={16} />
+              <span className="whitespace-nowrap">Prompt Engineering</span>
+            </TabsTrigger>
             <TabsTrigger value="saved" className="gap-2">
               <Heart size={16} />
               <span className="whitespace-nowrap">Saved Instructions</span>
@@ -166,6 +173,14 @@ export default function Index() {
               </Card>
             </div>
           </TabsContent>
+          
+          <TabsContent value="engineering">
+            <Card>
+              <CardContent className="p-6">
+                <PromptEngineeringGuide />
+              </CardContent>
+            </Card>
+          </TabsContent>
 
           <TabsContent value="saved">
             <Card>
@@ -183,6 +198,11 @@ export default function Index() {
             <PromptOpsSettings />
           </TabsContent>
         </Tabs>
+
+        <div className="space-y-8 mt-12 mb-16">
+          <PromptStrategies setInstruction={setInstruction} />
+          <PromptCollection setInstruction={setInstruction} setSelectedFramework={setFramework} />
+        </div>
 
         <footer className="mt-16 border-t pt-6 text-center text-sm text-gray-500">
           <div className="flex flex-col sm:flex-row justify-between items-center">
