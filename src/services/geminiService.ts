@@ -1,9 +1,8 @@
-
 // Gemini API service for generating AI instructions
 
 export interface GeminiRequest {
   prompt: string;
-  framework: string;
+  framework?: string;
   systemInstruction?: string;
   parameters?: Record<string, any>;
   tools?: GeminiTool[];
@@ -14,6 +13,7 @@ export interface GeminiRequest {
   topK?: number;
   topP?: number;
   candidateCount?: number;
+  maxTokens?: number;  // Added this property
 }
 
 export interface GeminiResponse {
@@ -93,10 +93,10 @@ class GeminiService {
       throw new Error("API key not set. Please set your Gemini API key first.");
     }
 
-    const frameworkPrompt = this.getFrameworkPrompt(request.framework);
+    const frameworkPrompt = request.framework ? this.getFrameworkPrompt(request.framework) : '';
     const systemInstruction = request.systemInstruction || this.defaultSystemInstruction || "";
     
-    const promptText = `
+    const promptText = request.framework ? `
 ${frameworkPrompt}
 
 User instruction: ${request.prompt}
@@ -104,7 +104,7 @@ User instruction: ${request.prompt}
 Generate a detailed AI system instruction using the ${request.framework} framework based on the user's request.
 Make it clear, structured, and comprehensive.
 ${request.language ? `Please respond in ${request.language}.` : ""}
-`;
+` : request.prompt;
 
     try {
       const response = await fetch(`${this.API_URL}?key=${this.apiKey}`, {
@@ -129,7 +129,7 @@ ${request.language ? `Please respond in ${request.language}.` : ""}
             temperature: request.temperature ?? 0.7,
             topK: request.topK ?? 40,
             topP: request.topP ?? 0.95,
-            maxOutputTokens: 1000,
+            maxOutputTokens: request.maxTokens ?? 1000,
             candidateCount: request.candidateCount ?? 1,
             ...(request.jsonMode && { responseSchema: { type: "json" } })
           }
@@ -178,10 +178,10 @@ ${request.language ? `Please respond in ${request.language}.` : ""}
       throw new Error("API key not set. Please set your Gemini API key first.");
     }
 
-    const frameworkPrompt = this.getFrameworkPrompt(request.framework);
+    const frameworkPrompt = request.framework ? this.getFrameworkPrompt(request.framework) : '';
     const systemInstruction = request.systemInstruction || this.defaultSystemInstruction || "";
     
-    const promptText = `
+    const promptText = request.framework ? `
 ${frameworkPrompt}
 
 User instruction: ${request.prompt}
@@ -189,7 +189,7 @@ User instruction: ${request.prompt}
 Generate a detailed AI system instruction using the ${request.framework} framework based on the user's request.
 Make it clear, structured, and comprehensive.
 ${request.language ? `Please respond in ${request.language}.` : ""}
-`;
+` : request.prompt;
 
     try {
       callbacks.onStart?.();
@@ -275,10 +275,10 @@ ${request.language ? `Please respond in ${request.language}.` : ""}
 
     // Format each request in the batch
     const formattedRequests = batchRequest.requests.map(request => {
-      const frameworkPrompt = this.getFrameworkPrompt(request.framework);
+      const frameworkPrompt = request.framework ? this.getFrameworkPrompt(request.framework) : '';
       const systemInstruction = request.systemInstruction || this.defaultSystemInstruction || "";
       
-      const promptText = `
+      const promptText = request.framework ? `
 ${frameworkPrompt}
 
 User instruction: ${request.prompt}
@@ -286,7 +286,7 @@ User instruction: ${request.prompt}
 Generate a detailed AI system instruction using the ${request.framework} framework based on the user's request.
 Make it clear, structured, and comprehensive.
 ${request.language ? `Please respond in ${request.language}.` : ""}
-`;
+` : request.prompt;
 
       return {
         contents: [

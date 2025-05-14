@@ -11,7 +11,9 @@ import { Slider } from "@/components/ui/slider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useGemini } from "@/hooks/use-gemini";
-import { Play, RefreshCw, PlusCircle, Trash2, ArrowDownUp, FileText } from "lucide-react";
+import { useVertexAI } from "@/hooks/use-vertex-ai";
+import { Play, RefreshCw, PlusCircle, Trash2, ArrowDownUp, FileText, Settings } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 interface ModelTestResult {
   id: string;
@@ -27,6 +29,7 @@ interface ModelConfig {
   id: string;
   name: string;
   provider: string;
+  model?: string;
   temperature: number;
   maxTokens: number;
   enabled: boolean;
@@ -37,15 +40,34 @@ const MultiLLMRunner = () => {
   const [isRunning, setIsRunning] = useState(false);
   const [currentModelIndex, setCurrentModelIndex] = useState(0);
   const [results, setResults] = useState<ModelTestResult[]>([]);
+  const [showVertexSettings, setShowVertexSettings] = useState(false);
+  const [vertexProject, setVertexProject] = useState("gen-lang-client-0345764080");
+  const [vertexLocation, setVertexLocation] = useState("us-central1");
+  const [vertexApiKey, setVertexApiKey] = useState("");
+  
   const [models, setModels] = useState<ModelConfig[]>([
     { id: "model-1", name: "Gemini Pro", provider: "Google", temperature: 0.7, maxTokens: 1024, enabled: true },
     { id: "model-2", name: "GPT-4o", provider: "OpenAI", temperature: 0.7, maxTokens: 1024, enabled: true },
     { id: "model-3", name: "Claude 3", provider: "Anthropic", temperature: 0.7, maxTokens: 1024, enabled: true },
-    { id: "model-4", name: "Llama 3", provider: "Meta", temperature: 0.7, maxTokens: 1024, enabled: false }
+    { id: "model-4", name: "Gemini 2.5 Pro", provider: "Vertex", model: "gemini-2.5-pro-preview-05-06", temperature: 1.0, maxTokens: 4096, enabled: true }
   ]);
   
   const { generateInstruction } = useGemini();
+  const { setupVertexAI, generateContent } = useVertexAI();
   const { toast } = useToast();
+  
+  const saveVertexSettings = () => {
+    const success = setupVertexAI({
+      vertexai: true,
+      project: vertexProject,
+      location: vertexLocation,
+      apiKey: vertexApiKey || undefined
+    });
+    
+    if (success) {
+      setShowVertexSettings(false);
+    }
+  };
 
   const runPrompt = async () => {
     if (!prompt.trim()) {
@@ -81,25 +103,47 @@ const MultiLLMRunner = () => {
         // Track time
         const startTime = Date.now();
         
-        // Call Gemini for all models (in a real app, would call respective APIs)
-        const result = await generateInstruction({
-          prompt,
-          temperature: model.temperature,
-          maxTokens: model.maxTokens  // Changed from maxOutputTokens to maxTokens
-        });
+        let resultText = "";
+        let tokenCount = 0;
+        
+        if (model.provider === "Vertex") {
+          // Call Vertex AI service for Vertex models
+          const result = await generateContent({
+            model: model.model || "gemini-2.5-pro-preview-05-06",
+            prompt,
+            temperature: model.temperature,
+            maxOutputTokens: model.maxTokens
+          });
+          
+          if (result) {
+            resultText = result.generatedText;
+            // Estimate token count
+            tokenCount = Math.round(resultText.split(/\s+/).length * 1.3);
+          }
+        } else {
+          // Call Gemini for other models (in a real app, would call respective APIs)
+          const result = await generateInstruction({
+            prompt,
+            temperature: model.temperature,
+            maxTokens: model.maxTokens
+          });
+          
+          if (result?.generatedText) {
+            resultText = result.generatedText;
+            // Estimate token count
+            tokenCount = Math.round(resultText.split(/\s+/).length * 1.3);
+          }
+        }
         
         const endTime = Date.now();
         const timeTaken = (endTime - startTime) / 1000; // seconds
         
-        if (result?.generatedText) {
-          // Estimate token count (just an estimation)
-          const tokenCount = Math.round(result.generatedText.split(/\s+/).length * 1.3);
-          
+        if (resultText) {
           setResults(prev => [...prev, {
             id: `result-${Date.now()}`,
             modelName: model.name,
             prompt,
-            response: result.generatedText,
+            response: resultText,
             timeTaken,
             tokenCount,
             timestamp: new Date().toISOString()
@@ -192,15 +236,26 @@ const MultiLLMRunner = () => {
           
           <div className="flex justify-between items-center mb-2">
             <h3 className="font-medium">Models</h3>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={addModel}
-              className="flex items-center gap-1"
-            >
-              <PlusCircle className="h-4 w-4" />
-              Add Model
-            </Button>
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setShowVertexSettings(true)}
+                className="flex items-center gap-1"
+              >
+                <Settings className="h-4 w-4" />
+                Vertex AI Settings
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={addModel}
+                className="flex items-center gap-1"
+              >
+                <PlusCircle className="h-4 w-4" />
+                Add Model
+              </Button>
+            </div>
           </div>
           
           <div className="space-y-3 mb-4">
@@ -233,10 +288,25 @@ const MultiLLMRunner = () => {
                           <SelectItem value="Google">Google</SelectItem>
                           <SelectItem value="OpenAI">OpenAI</SelectItem>
                           <SelectItem value="Anthropic">Anthropic</SelectItem>
-                          <SelectItem value="Meta">Meta</SelectItem>
+                          <SelectItem value="Vertex">Vertex AI</SelectItem>
                           <SelectItem value="Custom">Custom</SelectItem>
                         </SelectContent>
                       </Select>
+                      
+                      {model.provider === "Vertex" && (
+                        <Select 
+                          value={model.model} 
+                          onValueChange={(value) => updateModel(model.id, 'model', value)}
+                        >
+                          <SelectTrigger className="h-7 text-xs w-40">
+                            <SelectValue placeholder="Select model" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="gemini-2.5-pro-preview-05-06">Gemini 2.5 Pro</SelectItem>
+                            <SelectItem value="gemini-1.5-pro-preview-0514">Gemini 1.5 Pro</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -299,6 +369,57 @@ const MultiLLMRunner = () => {
           </div>
         </CardContent>
       </Card>
+      
+      <Dialog open={showVertexSettings} onOpenChange={setShowVertexSettings}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Vertex AI Configuration</DialogTitle>
+            <DialogDescription>
+              Configure your Google Vertex AI settings
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="project">Project ID</Label>
+              <Input 
+                id="project" 
+                value={vertexProject} 
+                onChange={(e) => setVertexProject(e.target.value)}
+                placeholder="e.g., gen-lang-client-0345764080"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="location">Location</Label>
+              <Input 
+                id="location" 
+                value={vertexLocation} 
+                onChange={(e) => setVertexLocation(e.target.value)}
+                placeholder="e.g., us-central1"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="apiKey">API Key (optional)</Label>
+              <Input 
+                id="apiKey" 
+                value={vertexApiKey} 
+                onChange={(e) => setVertexApiKey(e.target.value)}
+                type="password"
+                placeholder="Leave empty if using service account"
+              />
+              <p className="text-xs text-muted-foreground">
+                Only needed if not using default authentication
+              </p>
+            </div>
+            
+            <Button onClick={saveVertexSettings} className="w-full">
+              Save Configuration
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
       
       {results.length > 0 && (
         <Card>

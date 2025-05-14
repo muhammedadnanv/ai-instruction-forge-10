@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -425,7 +424,7 @@ DEPLOYMENT INSTRUCTIONS:
                   className="min-h-[200px] font-mono"
                 />
                 <p className="text-xs text-muted-foreground mt-1">
-                  Use {{input}} as a placeholder for user input
+                  Use {"{{input}}"} as a placeholder for user input
                 </p>
               </div>
               
