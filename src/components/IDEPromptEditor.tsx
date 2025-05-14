@@ -7,9 +7,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useGemini } from "@/hooks/use-gemini";
 import { useToast } from "@/hooks/use-toast";
-import { Code, Play, Save, FileCode, Settings, FileJson, Download } from "lucide-react";
+import { Code, Play, Save, FileCode, Settings, FileJson, Download, Sparkles } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import InstructionBuilder from "@/components/InstructionBuilder";
 
 const IDEPromptEditor = () => {
   const [promptCode, setPromptCode] = useState(
@@ -30,9 +31,52 @@ Respond with clear, structured information using markdown formatting.`
   const [activeTab, setActiveTab] = useState("editor");
   const [theme, setTheme] = useState("light");
   const [fontSize, setFontSize] = useState("14");
+  const [framework, setFramework] = useState("none");
   
   const { generateInstruction } = useGemini();
   const { toast } = useToast();
+  
+  const autoGeneratePrompt = async () => {
+    if (!testInput.trim()) {
+      toast({
+        title: "Empty Input",
+        description: "Please provide a topic or goal for prompt generation",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setIsProcessing(true);
+    try {
+      const result = await generateInstruction({
+        prompt: `Generate a professional prompt that would help achieve the following goal: "${testInput}". 
+        Format the prompt with clear sections including system instructions, user input placeholder (use {{input}} syntax), 
+        and format requirements. Make it suitable for professional prompt engineering work.`,
+        temperature: 0.7,
+        framework: "CRISP"
+      });
+      
+      if (result?.generatedText) {
+        setPromptCode(result.generatedText);
+        setActiveTab("editor");
+        toast({
+          title: "Prompt Generated",
+          description: "A new prompt has been created based on your input"
+        });
+      } else {
+        throw new Error("Failed to generate prompt");
+      }
+    } catch (error) {
+      console.error("Error generating prompt:", error);
+      toast({
+        title: "Generation Failed",
+        description: "Could not generate a prompt",
+        variant: "destructive"
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
 
   const runPrompt = async () => {
     if (!promptCode.trim()) {
@@ -50,7 +94,8 @@ Respond with clear, structured information using markdown formatting.`
       
       const result = await generateInstruction({
         prompt: processedPrompt,
-        temperature: 0.7
+        temperature: 0.7,
+        framework: framework !== "none" ? framework : undefined
       });
       
       if (result?.generatedText) {
@@ -224,11 +269,27 @@ export function generatePrompt(input) {
                     <div>
                       <h3 className="font-medium mb-2">Variables</h3>
                       <p className="text-sm text-gray-500 mb-2">
-                        Use {{variable}} syntax to insert dynamic content
+                        Use {'{{variable}}'} syntax to insert dynamic content
                       </p>
                       <div className="bg-muted p-2 rounded text-sm">
-                        <code>{{input}}</code> - User input
+                        <code>{'{{input}}'}</code> - User input
                       </div>
+                    </div>
+                    
+                    <div>
+                      <h3 className="font-medium mb-2">Framework</h3>
+                      <Select value={framework} onValueChange={setFramework}>
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Select Framework" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">None</SelectItem>
+                          <SelectItem value="CRISP">CRISP Framework</SelectItem>
+                          <SelectItem value="COT">Chain of Thought</SelectItem>
+                          <SelectItem value="ReACT">ReACT</SelectItem>
+                          <SelectItem value="PROMPT">PROMPT Framework</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                     
                     <div>
@@ -246,7 +307,19 @@ export function generatePrompt(input) {
           </Tabs>
           
           <div>
-            <h3 className="text-sm font-medium mb-2">Test Input</h3>
+            <div className="flex justify-between items-center mb-2">
+              <h3 className="text-sm font-medium">Test Input</h3>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={autoGeneratePrompt}
+                disabled={isProcessing}
+                className="flex items-center gap-1 bg-gradient-to-r from-amber-500 to-orange-600 text-white hover:from-amber-600 hover:to-orange-700"
+              >
+                <Sparkles className="h-3.5 w-3.5" />
+                Auto-Generate Prompt
+              </Button>
+            </div>
             <Textarea
               value={testInput}
               onChange={(e) => setTestInput(e.target.value)}

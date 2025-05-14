@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,6 +5,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Check, Copy, FileText, Lightbulb, Zap } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useGemini } from "@/hooks/use-gemini";
+import { generatePromptRequest } from "@/utils/promptGenerator";
 
 interface TechniqueProps {
   title: string;
@@ -18,6 +22,12 @@ const PromptEngineeringGuide = () => {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("basics");
   const [copiedExample, setCopiedExample] = useState<number | null>(null);
+  const [isGenerateDialogOpen, setIsGenerateDialogOpen] = useState(false);
+  const [promptGoal, setPromptGoal] = useState("");
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generatedPrompt, setGeneratedPrompt] = useState("");
+  
+  const { generateInstruction } = useGemini();
 
   const copyToClipboard = (text: string, index: number) => {
     navigator.clipboard.writeText(text);
@@ -28,6 +38,52 @@ const PromptEngineeringGuide = () => {
       title: "Example copied",
       description: "The example has been copied to your clipboard"
     });
+  };
+  
+  const handleGeneratePrompt = async () => {
+    if (!promptGoal.trim()) {
+      toast({
+        title: "Empty goal",
+        description: "Please enter a goal for your prompt",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setIsGenerating(true);
+    try {
+      const request = generatePromptRequest(promptGoal);
+      const result = await generateInstruction(request);
+      
+      if (result?.generatedText) {
+        setGeneratedPrompt(result.generatedText);
+        
+        // Save to localStorage for later use in IDE
+        const generatedPrompts = JSON.parse(localStorage.getItem("generatedPrompts") || "[]");
+        generatedPrompts.push({
+          goal: promptGoal,
+          prompt: result.generatedText,
+          timestamp: new Date().toISOString()
+        });
+        localStorage.setItem("generatedPrompts", JSON.stringify(generatedPrompts));
+        
+        toast({
+          title: "Prompt Generated",
+          description: "Your custom prompt has been generated successfully"
+        });
+      } else {
+        throw new Error("Failed to generate prompt");
+      }
+    } catch (error) {
+      console.error("Error generating prompt:", error);
+      toast({
+        title: "Generation Failed",
+        description: "Could not generate prompt. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const techniques: Record<string, TechniqueProps[]> = {
@@ -159,7 +215,10 @@ const PromptEngineeringGuide = () => {
           </p>
         </div>
         
-        <Button className="gap-2 bg-gradient-to-r from-amber-500 to-orange-600">
+        <Button 
+          className="gap-2 bg-gradient-to-r from-amber-500 to-orange-600"
+          onClick={() => setIsGenerateDialogOpen(true)}
+        >
           <Zap size={16} />
           Auto-Generate Prompt
         </Button>
@@ -229,6 +288,65 @@ const PromptEngineeringGuide = () => {
           </TabsContent>
         ))}
       </Tabs>
+      
+      <Dialog open={isGenerateDialogOpen} onOpenChange={setIsGenerateDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Zap className="h-5 w-5 text-amber-500" />
+              Auto-Generate Prompt
+            </DialogTitle>
+            <DialogDescription>
+              Describe your goal, and we'll generate an optimized prompt for you.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="py-4 space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="goal">Your Goal</Label>
+              <Input
+                id="goal"
+                value={promptGoal}
+                onChange={(e) => setPromptGoal(e.target.value)}
+                placeholder="e.g., Summarize scientific papers while extracting key findings"
+              />
+              <p className="text-xs text-muted-foreground">
+                Be specific about what you want to achieve with this prompt
+              </p>
+            </div>
+            
+            {generatedPrompt && (
+              <div className="space-y-2">
+                <Label>Generated Prompt</Label>
+                <div className="bg-muted p-3 rounded-md border border-border">
+                  <pre className="text-xs whitespace-pre-wrap font-mono">
+                    {generatedPrompt}
+                  </pre>
+                </div>
+              </div>
+            )}
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsGenerateDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={() => {
+                if (generatedPrompt) {
+                  navigator.clipboard.writeText(generatedPrompt);
+                  toast({ title: "Copied to clipboard" });
+                } else {
+                  handleGeneratePrompt();
+                }
+              }}
+              disabled={isGenerating || (!generatedPrompt && !promptGoal)}
+            >
+              {isGenerating ? "Generating..." : generatedPrompt ? "Copy to Clipboard" : "Generate Prompt"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
