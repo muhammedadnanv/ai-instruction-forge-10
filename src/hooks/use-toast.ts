@@ -1,4 +1,3 @@
-
 import {
   ToastActionElement,
   ToastProps,
@@ -36,8 +35,7 @@ const actionTypes = {
 let count = 0;
 
 function generateId() {
-  count = (count + 1) % Number.MAX_VALUE;
-  return count.toString();
+  return `${count++}`;
 }
 
 type ActionType = typeof actionTypes;
@@ -45,19 +43,19 @@ type ActionType = typeof actionTypes;
 type Action =
   | {
       type: ActionType["ADD_TOAST"];
-      toast: Omit<ToasterToast, "id">;
+      toast: ToasterToast;
     }
   | {
       type: ActionType["UPDATE_TOAST"];
-      toast: Partial<ToasterToast> & Pick<ToasterToast, "id">;
+      toast: Partial<ToasterToast> & { id: string };
     }
   | {
       type: ActionType["DISMISS_TOAST"];
-      toastId?: ToasterToast["id"];
+      toastId?: string;
     }
   | {
       type: ActionType["REMOVE_TOAST"];
-      toastId?: ToasterToast["id"];
+      toastId?: string;
     };
 
 interface State {
@@ -75,22 +73,19 @@ const addToRemoveQueue = (toastId: string) => {
     toastTimeouts.delete(toastId);
     dispatch({
       type: actionTypes.REMOVE_TOAST,
-      toastId,
+      toastId: toastId,
     });
   }, TOAST_REMOVE_DELAY);
 
   toastTimeouts.set(toastId, timeout);
 };
 
-export const reducer = (state: State, action: Action): State => {
+const reducer = (state: State, action: Action): State => {
   switch (action.type) {
     case actionTypes.ADD_TOAST:
       return {
         ...state,
-        toasts: [
-          ...state.toasts,
-          { ...action.toast, id: generateId() },
-        ],
+        toasts: [...state.toasts, action.toast],
       };
 
     case actionTypes.UPDATE_TOAST:
@@ -104,6 +99,8 @@ export const reducer = (state: State, action: Action): State => {
     case actionTypes.DISMISS_TOAST: {
       const { toastId } = action;
 
+      // ! Side effects ! - This could be extracted into a dismissToast() action,
+      // but I'll keep it here for simplicity
       if (toastId) {
         addToRemoveQueue(toastId);
       } else {
@@ -124,7 +121,6 @@ export const reducer = (state: State, action: Action): State => {
         ),
       };
     }
-
     case actionTypes.REMOVE_TOAST:
       if (action.toastId === undefined) {
         return {
@@ -150,45 +146,7 @@ function dispatch(action: Action) {
   });
 }
 
-// Define toast type for input without circular reference
-type ToastInput = Omit<ToastType, "id">;
-
-function toast(props: ToastInput) {
-  const id = generateId();
-
-  const update = (props: ToasterToast) =>
-    dispatch({
-      type: actionTypes.UPDATE_TOAST,
-      toast: { ...props, id },
-    });
-
-  const dismiss = () => {
-    dispatch({ type: actionTypes.DISMISS_TOAST, toastId: id });
-    return;
-  };
-
-  dispatch({
-    type: actionTypes.ADD_TOAST,
-    toast: {
-      ...props,
-      id,
-      open: true,
-      onOpenChange: (open) => {
-        if (!open) {
-          dismiss();
-        }
-      },
-    },
-  });
-
-  return {
-    id,
-    dismiss,
-    update,
-  };
-}
-
-function useToast() {
+export function useToast() {
   const [state, setState] = useState<State>(memoryState);
 
   useEffect(() => {
@@ -204,9 +162,42 @@ function useToast() {
   return {
     ...state,
     toast,
-    dismiss: (toastId?: string) =>
-      dispatch({ type: actionTypes.DISMISS_TOAST, toastId }),
+    dismiss: (toastId?: string) => dispatch({
+      type: actionTypes.DISMISS_TOAST,
+      toastId,
+    }),
   };
 }
 
-export { useToast, toast };
+// Define toast type for input without circular reference
+type ToastInput = Omit<ToastType, "id">;
+
+function toast(props: ToastInput) {
+  const id = generateId();
+
+  const update = (props: Partial<ToasterToast>) =>
+    dispatch({
+      type: actionTypes.UPDATE_TOAST,
+      toast: { ...props, id },
+    });
+
+  const dismiss = () => dispatch({ type: actionTypes.DISMISS_TOAST, toastId: id });
+
+  dispatch({
+    type: actionTypes.ADD_TOAST,
+    toast: {
+      ...props,
+      id,
+      open: true,
+      onOpenChange: (open) => {
+        if (!open) dismiss();
+      },
+    } as ToasterToast,
+  });
+
+  return {
+    id,
+    dismiss,
+    update,
+  };
+}
