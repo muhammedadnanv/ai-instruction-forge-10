@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { useGemini } from "@/hooks/use-gemini";
 import { useToast } from "@/hooks/use-toast";
-import { LineChart, BarChart, Play, PlusCircle, RefreshCw, Trash2, ArrowRightLeft, ListFilter } from "lucide-react";
+import { LineChart, BarChart, Play, PlusCircle, RefreshCw, Trash2, ArrowRightLeft, ListFilter, CheckCircle } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -315,6 +315,14 @@ Include an "overall" key with the average score.
       score: result.metrics.overall
     }));
   
+  // Navigation helper functions
+  const navigateToSetupTab = () => {
+    const setupTab = document.querySelector('[data-value="setup"]');
+    if (setupTab && setupTab instanceof HTMLElement) {
+      setupTab.click();
+    }
+  };
+  
   return (
     <Card>
       <CardHeader>
@@ -580,7 +588,7 @@ Include an "overall" key with the average score.
                 <Button 
                   className="mt-4" 
                   variant="outline" 
-                  onClick={() => document.querySelector('[data-value="setup"]')?.click()}
+                  onClick={navigateToSetupTab}
                 >
                   Set Up Test
                 </Button>
@@ -665,7 +673,7 @@ Include an "overall" key with the average score.
                 <Button 
                   className="mt-4" 
                   variant="outline" 
-                  onClick={() => document.querySelector('[data-value="setup"]')?.click()}
+                  onClick={navigateToSetupTab}
                 >
                   Set Up Test
                 </Button>
