@@ -1,11 +1,10 @@
-
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Heart, Zap, Code, Lock, Server, ArrowUpRight, Lightbulb } from "lucide-react";
+import { Heart, Zap, Code, Lock, Server, ArrowUpRight, Lightbulb, FileCode } from "lucide-react";
 import SaveInstructionDialog from "@/components/SaveInstructionDialog";
 import SystemInstructionDialog from "@/components/SystemInstructionDialog";
 import SavedInstructions from "@/components/SavedInstructions";
@@ -98,6 +97,18 @@ export default function Index() {
                 <Button variant="default" className="gap-2 text-sm" size={isMobile ? "sm" : "default"}>
                   <Zap size={16} />
                   <span className={isMobile ? "sr-only" : ""}>AI Applications</span>
+                </Button>
+              </Link>
+              <Link to="/prompt-engineering-tools">
+                <Button variant="outline" className="gap-2 text-sm" size={isMobile ? "sm" : "default"}>
+                  <Lightbulb size={16} />
+                  <span className={isMobile ? "sr-only" : ""}>Prompt Tools</span>
+                </Button>
+              </Link>
+              <Link to="/prompt-ide">
+                <Button variant="outline" className="gap-2 text-sm" size={isMobile ? "sm" : "default"}>
+                  <FileCode size={16} />
+                  <span className={isMobile ? "sr-only" : ""}>Prompt IDE</span>
                 </Button>
               </Link>
               <SystemInstructionDialog onSystemInstructionSet={handleSystemInstructionSet} />
