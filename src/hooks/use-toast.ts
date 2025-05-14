@@ -1,5 +1,8 @@
 
-import { Toast, ToastActionElement, ToastProps } from "@/components/ui/toast";
+import {
+  ToastActionElement,
+  ToastProps,
+} from "@/components/ui/toast";
 import {
   useCallback,
   useEffect,
@@ -8,11 +11,19 @@ import {
 
 export const TOAST_REMOVE_DELAY = 5000;
 
-export type ToasterToast = Toast & {
-  id: string;
+// Define a base toast type without circular references
+export type ToastType = {
+  id?: string;
   title?: React.ReactNode;
   description?: React.ReactNode;
   action?: ToastActionElement;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+} & ToastProps;
+
+// Extended version with required id
+export type ToasterToast = ToastType & {
+  id: string;
 };
 
 const actionTypes = {
@@ -139,9 +150,10 @@ function dispatch(action: Action) {
   });
 }
 
-type Toast = Omit<ToasterToast, "id">;
+// Define toast type for input without circular reference
+type ToastInput = Omit<ToastType, "id">;
 
-function toast({ ...props }: Toast) {
+function toast(props: ToastInput) {
   const id = generateId();
 
   const update = (props: ToasterToast) =>
