@@ -1,3 +1,4 @@
+
 import {
   ToastActionElement,
   ToastProps,
@@ -172,7 +173,8 @@ export function useToast() {
 // Define toast type for input without circular reference
 type ToastInput = Omit<ToastType, "id">;
 
-function toast(props: ToastInput) {
+// Export the toast function directly
+export function toast(props: ToastInput) {
   const id = generateId();
 
   const update = (props: Partial<ToasterToast>) =>
