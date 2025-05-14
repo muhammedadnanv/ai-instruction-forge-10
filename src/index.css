@@ -212,7 +212,8 @@
 
 /* Prevent text from overflowing containers */
 .text-ellipsis {
-  @apply overflow-hidden text-ellipsis whitespace-nowrap;
+  @apply overflow-hidden whitespace-nowrap;
+  text-overflow: ellipsis; /* Use the CSS property directly instead of the Tailwind class */
 }
 
 /* Fix iOS momentum scrolling */
