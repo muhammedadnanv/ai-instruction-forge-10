@@ -21,6 +21,7 @@ import PromptStrategies from "@/components/PromptStrategies";
 import PromptCollection from "@/components/PromptCollection";
 import { useToast } from "@/hooks/use-toast";
 import Header from "@/components/Header";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export default function Index() {
   const [framework, setFramework] = useState("ACT");
@@ -33,6 +34,7 @@ export default function Index() {
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [apiKeyDialogOpen, setApiKeyDialogOpen] = useState(!isAuthenticated);
   const { toast } = useToast();
+  const isMobile = useIsMobile();
 
   const handleSystemInstructionSet = () => {
     console.log("System instruction updated");
@@ -60,7 +62,7 @@ export default function Index() {
   return (
     <div className="flex flex-col min-h-screen">
       <Header />
-      <div className="container mx-auto max-w-7xl py-4 px-4 flex-grow">
+      <div className="container mx-auto max-w-7xl py-4 px-4 flex-grow overflow-x-hidden">
         {!isAuthenticated && (
           <>
             <ApiKeyDialog
@@ -93,19 +95,19 @@ export default function Index() {
             </div>
             <div className="flex flex-wrap items-center gap-2 mt-4 sm:mt-0 justify-center sm:justify-start">
               <Link to="/ai-applications">
-                <Button variant="default" className="gap-2">
+                <Button variant="default" className="gap-2 text-sm" size={isMobile ? "sm" : "default"}>
                   <Zap size={16} />
-                  AI Applications
+                  <span className={isMobile ? "sr-only" : ""}>AI Applications</span>
                 </Button>
               </Link>
               <SystemInstructionDialog onSystemInstructionSet={handleSystemInstructionSet} />
-              <Button variant="outline" className="gap-2">
+              <Button variant="outline" className="gap-2 text-sm" size={isMobile ? "sm" : "default"}>
                 <Heart size={16} className="text-red-500" />
-                Favorites
+                <span className={isMobile ? "sr-only" : ""}>Favorites</span>
               </Button>
-              <Button className="gap-2 bg-gradient-to-r from-blue-600 to-indigo-600">
+              <Button className="gap-2 text-sm bg-gradient-to-r from-blue-600 to-indigo-600" size={isMobile ? "sm" : "default"}>
                 <Zap size={16} />
-                Upgrade Pro
+                <span className={isMobile ? "sr-only" : ""}>Upgrade Pro</span>
               </Button>
             </div>
           </motion.div>
@@ -113,25 +115,25 @@ export default function Index() {
 
         <Tabs defaultValue="builder" className="mb-8">
           <TabsList className="mb-4 overflow-x-auto flex w-full">
-            <TabsTrigger value="builder" className="gap-2">
+            <TabsTrigger value="builder" className="gap-2 whitespace-nowrap">
               <Code size={16} />
-              <span className="whitespace-nowrap">Prompt Builder</span>
+              <span className={isMobile ? "hidden sm:inline" : ""}>Prompt Builder</span>
             </TabsTrigger>
-            <TabsTrigger value="engineering" className="gap-2">
+            <TabsTrigger value="engineering" className="gap-2 whitespace-nowrap">
               <Lightbulb size={16} />
-              <span className="whitespace-nowrap">Prompt Engineering</span>
+              <span className={isMobile ? "hidden sm:inline" : ""}>Prompt Engineering</span>
             </TabsTrigger>
-            <TabsTrigger value="saved" className="gap-2">
+            <TabsTrigger value="saved" className="gap-2 whitespace-nowrap">
               <Heart size={16} />
-              <span className="whitespace-nowrap">Saved Instructions</span>
+              <span className={isMobile ? "hidden sm:inline" : ""}>Saved Instructions</span>
             </TabsTrigger>
-            <TabsTrigger value="security" className="gap-2">
+            <TabsTrigger value="security" className="gap-2 whitespace-nowrap">
               <Lock size={16} />
-              <span className="whitespace-nowrap">Security & Access</span>
+              <span className={isMobile ? "hidden sm:inline" : ""}>Security</span>
             </TabsTrigger>
-            <TabsTrigger value="promptops" className="gap-2">
+            <TabsTrigger value="promptops" className="gap-2 whitespace-nowrap">
               <Server size={16} />
-              <span className="whitespace-nowrap">PromptOps</span>
+              <span className={isMobile ? "hidden sm:inline" : ""}>PromptOps</span>
             </TabsTrigger>
           </TabsList>
 

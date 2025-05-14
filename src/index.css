@@ -92,6 +92,7 @@
   body {
     @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
+    -webkit-tap-highlight-color: transparent;
   }
   
   /* Improve focus states for better accessibility */
@@ -102,6 +103,12 @@
   /* Improve form element consistency */
   input, textarea, select {
     @apply focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 focus:border-indigo-300 transition-all duration-200;
+  }
+
+  /* Fix iOS text size adjustment */
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
   }
 }
 
@@ -120,6 +127,15 @@
   .gradient-text {
     @apply bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-blue-600;
   }
+
+  /* Mobile optimizations */
+  .mobile-friendly-text {
+    @apply text-base sm:text-sm md:text-base;
+  }
+
+  .touch-target {
+    @apply min-h-[44px] min-w-[44px];
+  }
 }
 
 @layer utilities {
@@ -128,6 +144,36 @@
   }
   .animation-delay-400 {
     animation-delay: 0.4s;
+  }
+
+  /* Responsive spacing utilities */
+  .responsive-p {
+    @apply p-4 sm:p-6 md:p-8;
+  }
+  
+  .responsive-m {
+    @apply m-2 sm:m-4 md:m-6;
+  }
+
+  .responsive-gap {
+    @apply gap-2 sm:gap-4 md:gap-6;
+  }
+
+  /* Safe area insets for iOS devices */
+  .safe-top {
+    padding-top: env(safe-area-inset-top);
+  }
+  
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  
+  .safe-left {
+    padding-left: env(safe-area-inset-left);
+  }
+  
+  .safe-right {
+    padding-right: env(safe-area-inset-right);
   }
 }
 
@@ -149,4 +195,28 @@
 
 ::-webkit-scrollbar-thumb:hover {
   background: #a1a1a1;
+}
+
+/* Mobile optimizations */
+@media (max-width: 640px) {
+  /* Increase touch targets */
+  button, a {
+    @apply min-h-[44px] min-w-[44px] flex items-center justify-center;
+  }
+  
+  /* Adjust form inputs for touch */
+  input, select, textarea {
+    @apply p-3 text-base;
+  }
+}
+
+/* Prevent text from overflowing containers */
+.text-ellipsis {
+  @apply overflow-hidden text-ellipsis whitespace-nowrap;
+}
+
+/* Fix iOS momentum scrolling */
+.momentum-scroll {
+  -webkit-overflow-scrolling: touch;
+  overflow-y: scroll;
 }
