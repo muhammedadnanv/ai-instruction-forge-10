@@ -1,7 +1,10 @@
+
 import { Button } from "@/components/ui/button";
 import { HelpCircle, Settings, ExternalLink } from "lucide-react";
+
 const Header = () => {
-  return <header className="bg-white/90 backdrop-blur-sm border-b border-gray-200 sticky top-0 z-10 shadow-sm">
+  return (
+    <header className="bg-white/90 backdrop-blur-sm border-b border-gray-200 sticky top-0 z-10 shadow-sm">
       <div className="container mx-auto px-4 py-3 flex justify-between items-center">
         <div className="flex items-center gap-2">
           <div className="bg-gradient-to-r from-indigo-600 to-blue-600 text-white p-2 rounded-md shadow-md">
@@ -21,9 +24,10 @@ const Header = () => {
           <Button variant="ghost" size="icon" className="rounded-full hover:bg-gray-100">
             <Settings size={20} />
           </Button>
-          
         </div>
       </div>
-    </header>;
+    </header>
+  );
 };
+
 export default Header;

@@ -17,6 +17,7 @@ import PaymentDialog from "@/components/PaymentDialog";
 import SecuritySettings from "@/components/SecuritySettings";
 import PromptOpsSettings from "@/components/PromptOpsSettings";
 import { useToast } from "@/hooks/use-toast";
+import Header from "@/components/Header";
 
 export default function Index() {
   const [framework, setFramework] = useState("ACT");
@@ -31,7 +32,6 @@ export default function Index() {
   const { toast } = useToast();
 
   const handleSystemInstructionSet = () => {
-    // This is called when the system instruction is updated
     console.log("System instruction updated");
     toast({
       title: "System Instruction Updated",
@@ -55,149 +55,152 @@ export default function Index() {
   };
 
   return (
-    <div className="container mx-auto max-w-7xl py-4 px-4">
-      {!isAuthenticated && (
-        <>
-          <ApiKeyDialog
-            isOpen={apiKeyDialogOpen}
-            onOpenChange={setApiKeyDialogOpen}
-            onApiKeySubmit={handleApiKeySubmit}
-          />
-          <PaymentDialog
-            open={paymentDialogOpen}
-            onOpenChange={setPaymentDialogOpen}
-            onPaymentComplete={handlePaymentComplete}
-          />
-        </>
-      )}
+    <div className="flex flex-col min-h-screen">
+      <Header />
+      <div className="container mx-auto max-w-7xl py-4 px-4 flex-grow">
+        {!isAuthenticated && (
+          <>
+            <ApiKeyDialog
+              open={apiKeyDialogOpen}
+              onOpenChange={setApiKeyDialogOpen}
+              onApiKeySubmit={handleApiKeySubmit}
+            />
+            <PaymentDialog
+              open={paymentDialogOpen}
+              onOpenChange={setPaymentDialogOpen}
+              onPaymentComplete={handlePaymentComplete}
+            />
+          </>
+        )}
 
-      <header className="mb-8">
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="flex flex-col sm:flex-row justify-between items-center"
-        >
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">
-              PromptCraft<span className="text-blue-600">AI</span>
-            </h1>
-            <p className="text-gray-500 mt-1 text-sm">
-              Advanced prompt engineering for AI models
-            </p>
-          </div>
-          <div className="flex items-center gap-2 mt-4 sm:mt-0">
-            <Link to="/ai-applications">
-              <Button variant="default" className="gap-2">
-                <Zap size={16} />
-                AI Applications
-              </Button>
-            </Link>
-            <SystemInstructionDialog onSystemInstructionSet={handleSystemInstructionSet} />
-            <Button variant="outline" className="gap-2">
-              <Heart size={16} className="text-red-500" />
-              Favorites
-            </Button>
-            <Button className="gap-2 bg-gradient-to-r from-blue-600 to-indigo-600">
-              <Zap size={16} />
-              Upgrade Pro
-            </Button>
-          </div>
-        </motion.div>
-      </header>
-
-      <Tabs defaultValue="builder" className="mb-8">
-        <TabsList className="mb-4">
-          <TabsTrigger value="builder" className="gap-2">
-            <Code size={16} />
-            Prompt Builder
-          </TabsTrigger>
-          <TabsTrigger value="saved" className="gap-2">
-            <Heart size={16} />
-            Saved Instructions
-          </TabsTrigger>
-          <TabsTrigger value="security" className="gap-2">
-            <Lock size={16} />
-            Security & Access
-          </TabsTrigger>
-          <TabsTrigger value="promptops" className="gap-2">
-            <Server size={16} />
-            PromptOps
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="builder">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="space-y-6">
-              <Card>
-                <CardContent className="p-6">
-                  <FrameworkSelector
-                    selectedFramework={framework}
-                    onFrameworkSelect={setFramework}
-                  />
-                </CardContent>
-              </Card>
-
-              <Card className="overflow-hidden">
-                <CardContent className="p-0">
-                  <InstructionBuilder
-                    framework={framework}
-                    instruction={instruction}
-                    setInstruction={setInstruction}
-                    onGenerate={setOutput}
-                  />
-                </CardContent>
-              </Card>
-
-              <div className="flex justify-end">
-                <SaveInstructionDialog 
-                  instruction={instruction} 
-                  framework={framework} 
-                />
-              </div>
+        <header className="mb-8">
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="flex flex-col sm:flex-row justify-between items-center"
+          >
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight">
+                Instruct<span className="text-blue-600">AI</span>
+              </h1>
+              <p className="text-gray-500 mt-1 text-sm">
+                Advanced prompt engineering for AI models
+              </p>
             </div>
+            <div className="flex flex-wrap items-center gap-2 mt-4 sm:mt-0 justify-center sm:justify-start">
+              <Link to="/ai-applications">
+                <Button variant="default" className="gap-2">
+                  <Zap size={16} />
+                  AI Applications
+                </Button>
+              </Link>
+              <SystemInstructionDialog onSystemInstructionSet={handleSystemInstructionSet} />
+              <Button variant="outline" className="gap-2">
+                <Heart size={16} className="text-red-500" />
+                Favorites
+              </Button>
+              <Button className="gap-2 bg-gradient-to-r from-blue-600 to-indigo-600">
+                <Zap size={16} />
+                Upgrade Pro
+              </Button>
+            </div>
+          </motion.div>
+        </header>
 
-            <Card className="h-full">
-              <CardContent className="p-6 h-full">
-                <OutputPreview output={output} />
+        <Tabs defaultValue="builder" className="mb-8">
+          <TabsList className="mb-4 overflow-x-auto flex w-full">
+            <TabsTrigger value="builder" className="gap-2">
+              <Code size={16} />
+              <span className="whitespace-nowrap">Prompt Builder</span>
+            </TabsTrigger>
+            <TabsTrigger value="saved" className="gap-2">
+              <Heart size={16} />
+              <span className="whitespace-nowrap">Saved Instructions</span>
+            </TabsTrigger>
+            <TabsTrigger value="security" className="gap-2">
+              <Lock size={16} />
+              <span className="whitespace-nowrap">Security & Access</span>
+            </TabsTrigger>
+            <TabsTrigger value="promptops" className="gap-2">
+              <Server size={16} />
+              <span className="whitespace-nowrap">PromptOps</span>
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="builder">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="space-y-6">
+                <Card>
+                  <CardContent className="p-6">
+                    <FrameworkSelector
+                      selectedFramework={framework}
+                      onFrameworkSelect={setFramework}
+                    />
+                  </CardContent>
+                </Card>
+
+                <Card className="overflow-hidden">
+                  <CardContent className="p-0">
+                    <InstructionBuilder
+                      framework={framework}
+                      instruction={instruction}
+                      setInstruction={setInstruction}
+                      onGenerate={setOutput}
+                    />
+                  </CardContent>
+                </Card>
+
+                <div className="flex justify-end">
+                  <SaveInstructionDialog 
+                    instruction={instruction} 
+                    framework={framework} 
+                  />
+                </div>
+              </div>
+
+              <Card className="h-full">
+                <CardContent className="p-6 h-full">
+                  <OutputPreview output={output} />
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="saved">
+            <Card>
+              <CardContent className="p-6">
+                <SavedInstructions />
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="security">
+            <SecuritySettings />
+          </TabsContent>
+
+          <TabsContent value="promptops">
+            <PromptOpsSettings />
+          </TabsContent>
+        </Tabs>
+
+        <footer className="mt-16 border-t pt-6 text-center text-sm text-gray-500">
+          <div className="flex flex-col sm:flex-row justify-between items-center">
+            <p>&copy; 2025 InstructAI. All rights reserved.</p>
+            <div className="flex flex-wrap gap-4 mt-4 sm:mt-0 justify-center">
+              <a href="#" className="hover:text-blue-600 flex items-center gap-1">
+                Documentation <ArrowUpRight size={14} />
+              </a>
+              <a href="#" className="hover:text-blue-600 flex items-center gap-1">
+                API Reference <ArrowUpRight size={14} />
+              </a>
+              <a href="#" className="hover:text-blue-600 flex items-center gap-1">
+                Support <ArrowUpRight size={14} />
+              </a>
+            </div>
           </div>
-        </TabsContent>
-
-        <TabsContent value="saved">
-          <Card>
-            <CardContent className="p-6">
-              <SavedInstructions />
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="security">
-          <SecuritySettings />
-        </TabsContent>
-
-        <TabsContent value="promptops">
-          <PromptOpsSettings />
-        </TabsContent>
-      </Tabs>
-
-      <footer className="mt-16 border-t pt-6 text-center text-sm text-gray-500">
-        <div className="flex flex-col sm:flex-row justify-between items-center">
-          <p>&copy; 2025 PromptCraftAI. All rights reserved.</p>
-          <div className="flex gap-4 mt-4 sm:mt-0">
-            <a href="#" className="hover:text-blue-600 flex items-center gap-1">
-              Documentation <ArrowUpRight size={14} />
-            </a>
-            <a href="#" className="hover:text-blue-600 flex items-center gap-1">
-              API Reference <ArrowUpRight size={14} />
-            </a>
-            <a href="#" className="hover:text-blue-600 flex items-center gap-1">
-              Support <ArrowUpRight size={14} />
-            </a>
-          </div>
-        </div>
-      </footer>
+        </footer>
+      </div>
     </div>
   );
 }
