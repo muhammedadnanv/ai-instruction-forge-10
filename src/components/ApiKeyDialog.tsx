@@ -7,6 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Key } from "lucide-react";
 import geminiService from "@/services/geminiService";
 import PaymentDialog from "./PaymentDialog";
+import paymentService from "@/services/paymentService";
 
 interface ApiKeyDialogProps {
   open?: boolean;
@@ -39,8 +40,8 @@ const ApiKeyDialog = ({ open: controlledOpen, onOpenChange, onApiKeySubmit, onAp
     setHasStoredKey(!!storedKey);
     
     // Check if payment has been made
-    const paymentVerified = localStorage.getItem('payment_verified') === 'true';
-    setHasPaid(paymentVerified);
+    const userHasPaid = paymentService.hasUserPaid();
+    setHasPaid(userHasPaid);
   }, []);
 
   const handleSaveApiKey = () => {

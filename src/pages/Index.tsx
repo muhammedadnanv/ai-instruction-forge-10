@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -21,19 +21,35 @@ import PromptCollection from "@/components/PromptCollection";
 import { useToast } from "@/hooks/use-toast";
 import Header from "@/components/Header";
 import { useIsMobile } from "@/hooks/use-mobile";
+import paymentService from "@/services/paymentService";
+import geminiService from "@/services/geminiService";
 
 export default function Index() {
   const [framework, setFramework] = useState("ACT");
   const [instruction, setInstruction] = useState("");
   const [output, setOutput] = useState("");
-  const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    return localStorage.getItem("gemini_api_key") !== null && 
-           localStorage.getItem("has_paid") === "true";
-  });
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
-  const [apiKeyDialogOpen, setApiKeyDialogOpen] = useState(!isAuthenticated);
+  const [apiKeyDialogOpen, setApiKeyDialogOpen] = useState(false);
   const { toast } = useToast();
   const isMobile = useIsMobile();
+
+  // Check authentication status on component mount
+  useEffect(() => {
+    const hasApiKey = !!geminiService.getApiKey();
+    const hasPaid = paymentService.hasUserPaid();
+    
+    setIsAuthenticated(hasApiKey && hasPaid);
+    
+    // If user has API key but hasn't paid, show payment dialog
+    if (hasApiKey && !hasPaid) {
+      setPaymentDialogOpen(true);
+    } 
+    // If user has neither, show API key dialog first
+    else if (!hasApiKey) {
+      setApiKeyDialogOpen(true);
+    }
+  }, []);
 
   const handleSystemInstructionSet = () => {
     console.log("System instruction updated");
@@ -45,7 +61,7 @@ export default function Index() {
 
   const handleApiKeySubmit = () => {
     // Check if the user has paid
-    if (localStorage.getItem("has_paid") !== "true") {
+    if (!paymentService.hasUserPaid()) {
       setPaymentDialogOpen(true);
     } else {
       setIsAuthenticated(true);
@@ -53,7 +69,6 @@ export default function Index() {
   };
 
   const handlePaymentComplete = () => {
-    localStorage.setItem("has_paid", "true");
     setPaymentDialogOpen(false);
     setIsAuthenticated(true);
   };

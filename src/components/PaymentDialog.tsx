@@ -3,7 +3,8 @@ import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Check, CreditCard, IndianRupee, Wallet, AlertCircle, Loader2 } from "lucide-react";
+import { Check, CreditCard, IndianRupee, Wallet, AlertCircle, Loader2, RefreshCw } from "lucide-react";
+import paymentService, { PAYMENT_STATUS } from "@/services/paymentService";
 
 interface PaymentDialogProps {
   open: boolean;
@@ -16,7 +17,9 @@ const PaymentDialog = ({ open, onOpenChange, onPaymentComplete }: PaymentDialogP
   const [isVerifying, setIsVerifying] = useState(false);
   const [paymentInitiated, setPaymentInitiated] = useState(false);
   const [verificationMessage, setVerificationMessage] = useState("");
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const { toast } = useToast();
+  
   const upiId = "adnanmuhammad4393@okicici";
   const amount = "199";
 
@@ -26,22 +29,27 @@ const PaymentDialog = ({ open, onOpenChange, onPaymentComplete }: PaymentDialogP
   // Generate QR code image URL using a QR code API
   const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(upiQrLink)}`;
 
+  // Check payment status when dialog opens
+  useEffect(() => {
+    if (open) {
+      const hasAlreadyPaid = paymentService.hasUserPaid();
+      if (hasAlreadyPaid) {
+        setIsPaid(true);
+      }
+    }
+  }, [open]);
+
   // Simulated payment verification
-  const verifyPayment = () => {
+  const verifyPayment = async () => {
     setIsVerifying(true);
     setVerificationMessage("Verifying your payment...");
     
-    // Simulate API call to verify payment
-    setTimeout(() => {
-      // In a real app, this would check with a backend API
-      const randomSuccess = paymentInitiated || Math.random() > 0.3; // Higher chance of success if payment was initiated
+    try {
+      const success = await paymentService.verifyPayment(paymentInitiated);
       
-      if (randomSuccess) {
+      if (success) {
         setIsPaid(true);
         setVerificationMessage("");
-        localStorage.setItem('payment_verified', 'true');
-        localStorage.setItem('payment_date', new Date().toISOString());
-        localStorage.setItem('has_paid', 'true');
         
         toast({
           title: "Payment Verified",
@@ -61,7 +69,15 @@ const PaymentDialog = ({ open, onOpenChange, onPaymentComplete }: PaymentDialogP
           variant: "destructive"
         });
       }
-    }, 2000);
+    } catch (error) {
+      setIsVerifying(false);
+      setVerificationMessage("An error occurred during verification. Please try again.");
+      toast({
+        title: "Verification Error",
+        description: "An error occurred while verifying your payment.",
+        variant: "destructive"
+      });
+    }
   };
 
   const handlePaymentInitiation = () => {
@@ -77,7 +93,46 @@ const PaymentDialog = ({ open, onOpenChange, onPaymentComplete }: PaymentDialogP
       window.open(upiQrLink, '_blank');
     } catch (error) {
       console.error("Failed to open UPI app:", error);
+      toast({
+        title: "Failed to Open UPI App",
+        description: "Please scan the QR code with your UPI app manually.",
+        variant: "destructive"
+      });
     }
+  };
+
+  const handleRefreshPaymentStatus = async () => {
+    setIsRefreshing(true);
+    
+    try {
+      const success = await paymentService.verifyPayment(true);
+      
+      if (success) {
+        setIsPaid(true);
+        toast({
+          title: "Payment Found",
+          description: "Your payment has been successfully verified."
+        });
+        
+        setTimeout(() => {
+          onPaymentComplete();
+          onOpenChange(false);
+        }, 1000);
+      } else {
+        toast({
+          title: "No Payment Found",
+          description: "We couldn't find your payment. Please try again after completing payment."
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Refresh Failed",
+        description: "Failed to refresh payment status. Please try again.",
+        variant: "destructive"
+      });
+    }
+    
+    setIsRefreshing(false);
   };
 
   return (
@@ -156,6 +211,7 @@ const PaymentDialog = ({ open, onOpenChange, onPaymentComplete }: PaymentDialogP
               >
                 Cancel
               </Button>
+              
               {isVerifying ? (
                 <Button 
                   disabled
@@ -165,13 +221,29 @@ const PaymentDialog = ({ open, onOpenChange, onPaymentComplete }: PaymentDialogP
                   Verifying Payment
                 </Button>
               ) : (
-                <Button 
-                  onClick={verifyPayment}
-                  className="gap-2 bg-green-600 hover:bg-green-700 sm:order-2"
-                >
-                  <CreditCard size={16} />
-                  Verify Payment
-                </Button>
+                <div className="flex gap-2 sm:order-2">
+                  <Button
+                    variant="outline"
+                    onClick={handleRefreshPaymentStatus}
+                    disabled={isRefreshing}
+                    className="gap-1"
+                  >
+                    {isRefreshing ? (
+                      <Loader2 size={16} className="animate-spin" />
+                    ) : (
+                      <RefreshCw size={16} />
+                    )}
+                    Refresh
+                  </Button>
+                  
+                  <Button 
+                    onClick={verifyPayment}
+                    className="gap-2 bg-green-600 hover:bg-green-700"
+                  >
+                    <CreditCard size={16} />
+                    Verify Payment
+                  </Button>
+                </div>
               )}
             </>
           ) : (
