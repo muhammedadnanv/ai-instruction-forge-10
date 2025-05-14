@@ -16,10 +16,8 @@ const queryClient = new QueryClient({
   },
 });
 
-// Fix the TooltipProvider implementation by making it a proper component wrapper
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    {/* TooltipProvider must wrap the app content directly */}
     <TooltipProvider>
       <Toaster />
       <Sonner position="top-center" />

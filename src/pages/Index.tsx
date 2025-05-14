@@ -15,6 +15,7 @@ import ApiKeyDialog from "@/components/ApiKeyDialog";
 import PaymentDialog from "@/components/PaymentDialog";
 import SecuritySettings from "@/components/SecuritySettings";
 import PromptOpsSettings from "@/components/PromptOpsSettings";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Index() {
   const [framework, setFramework] = useState("openai");
@@ -26,10 +27,15 @@ export default function Index() {
   });
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [apiKeyDialogOpen, setApiKeyDialogOpen] = useState(!isAuthenticated);
+  const { toast } = useToast();
 
   const handleSystemInstructionSet = () => {
     // This is called when the system instruction is updated
     console.log("System instruction updated");
+    toast({
+      title: "System Instruction Updated",
+      description: "Your system instruction has been updated successfully"
+    });
   };
 
   const handleApiKeySubmit = () => {

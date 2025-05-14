@@ -1,15 +1,14 @@
 
-import { useState } from "react";
 import { InfoIcon } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface FrameworkSelectorProps {
   selectedFramework: string;
-  setSelectedFramework: (framework: string) => void;
+  onSelect: (framework: string) => void;
 }
 
-const FrameworkSelector = ({ selectedFramework, setSelectedFramework }: FrameworkSelectorProps) => {
+const FrameworkSelector = ({ selectedFramework, onSelect }: FrameworkSelectorProps) => {
   const frameworks = [
     { 
       value: "ACT", 
@@ -69,7 +68,7 @@ const FrameworkSelector = ({ selectedFramework, setSelectedFramework }: Framewor
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-2">
-        <Select value={selectedFramework} onValueChange={setSelectedFramework}>
+        <Select value={selectedFramework} onValueChange={onSelect}>
           <SelectTrigger className="w-full">
             <SelectValue placeholder="Select Framework" />
           </SelectTrigger>

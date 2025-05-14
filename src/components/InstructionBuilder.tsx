@@ -7,10 +7,12 @@ import { PlusCircle } from "lucide-react";
 
 interface InstructionBuilderProps {
   framework: string;
+  instruction?: string;
   setInstruction: (instruction: string) => void;
+  onGenerate?: (output: string) => void;
 }
 
-const InstructionBuilder = ({ framework, setInstruction }: InstructionBuilderProps) => {
+const InstructionBuilder = ({ framework, instruction = "", setInstruction, onGenerate }: InstructionBuilderProps) => {
   const [fields, setFields] = useState<Record<string, string>>({});
   
   const frameworkFields: Record<string, string[]> = {
@@ -42,6 +44,10 @@ const InstructionBuilder = ({ framework, setInstruction }: InstructionBuilderPro
     });
     
     setInstruction(instructionText);
+    
+    if (onGenerate) {
+      onGenerate(instructionText);
+    }
   };
 
   return (

@@ -9,16 +9,30 @@ import geminiService from "@/services/geminiService";
 import PaymentDialog from "./PaymentDialog";
 
 interface ApiKeyDialogProps {
-  onApiKeySet: () => void;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  onApiKeySubmit?: () => void;
+  onApiKeySet?: () => void;
 }
 
-const ApiKeyDialog = ({ onApiKeySet }: ApiKeyDialogProps) => {
+const ApiKeyDialog = ({ open: controlledOpen, onOpenChange, onApiKeySubmit, onApiKeySet }: ApiKeyDialogProps) => {
   const [apiKey, setApiKey] = useState("");
   const [open, setOpen] = useState(false);
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   const { toast } = useToast();
   const [hasStoredKey, setHasStoredKey] = useState(false);
   const [hasPaid, setHasPaid] = useState(false);
+  
+  // Handle controlled/uncontrolled state
+  const isControlled = controlledOpen !== undefined;
+  const isOpen = isControlled ? controlledOpen : open;
+  
+  const handleOpenChange = (newOpen: boolean) => {
+    if (!isControlled) {
+      setOpen(newOpen);
+    }
+    onOpenChange?.(newOpen);
+  };
 
   useEffect(() => {
     const storedKey = geminiService.getApiKey();
@@ -64,8 +78,16 @@ const ApiKeyDialog = ({ onApiKeySet }: ApiKeyDialogProps) => {
       title: "API Key Saved",
       description: "Your Gemini API key has been saved"
     });
-    onApiKeySet();
-    setOpen(false);
+    
+    if (onApiKeySet) {
+      onApiKeySet();
+    }
+    
+    if (onApiKeySubmit) {
+      onApiKeySubmit();
+    }
+    
+    handleOpenChange(false);
   };
 
   const handlePaymentComplete = () => {
@@ -77,7 +99,7 @@ const ApiKeyDialog = ({ onApiKeySet }: ApiKeyDialogProps) => {
 
   return (
     <>
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={isOpen} onOpenChange={handleOpenChange}>
         <DialogTrigger asChild>
           <Button variant={hasStoredKey ? "outline" : "default"} className="gap-2">
             <Key size={16} />
@@ -104,7 +126,7 @@ const ApiKeyDialog = ({ onApiKeySet }: ApiKeyDialogProps) => {
           </div>
           
           <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => handleOpenChange(false)}>Cancel</Button>
             <Button onClick={handleSaveApiKey}>Save API Key</Button>
           </DialogFooter>
         </DialogContent>

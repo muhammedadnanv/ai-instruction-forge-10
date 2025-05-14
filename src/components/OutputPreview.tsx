@@ -6,21 +6,25 @@ import { useState, useEffect, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
 
 interface OutputPreviewProps {
-  generatedInstruction: string;
-  isGenerating: boolean;
+  output?: string;
+  generatedInstruction?: string;
+  isGenerating?: boolean;
   streamingContent?: string;
   isStreaming?: boolean;
 }
 
 const OutputPreview = ({ 
-  generatedInstruction, 
-  isGenerating, 
+  output = "",
+  generatedInstruction = "", 
+  isGenerating = false, 
   streamingContent = "", 
   isStreaming = false 
 }: OutputPreviewProps) => {
   const [copying, setCopying] = useState(false);
   const { toast } = useToast();
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  
+  const contentToDisplay = output || generatedInstruction || streamingContent;
   
   // Auto-scroll to bottom when streaming content updates
   useEffect(() => {
@@ -33,7 +37,7 @@ const OutputPreview = ({
   }, [streamingContent, isStreaming]);
   
   const copyToClipboard = async () => {
-    const contentToCopy = isStreaming ? streamingContent : generatedInstruction;
+    const contentToCopy = contentToDisplay;
     if (!contentToCopy) return;
     
     setCopying(true);
@@ -85,7 +89,7 @@ const OutputPreview = ({
     );
   }
 
-  if ((isStreaming && !streamingContent) || (!isStreaming && !generatedInstruction)) {
+  if (!contentToDisplay) {
     return (
       <div className="border rounded-lg p-6 bg-gradient-to-br from-gray-50 to-blue-50 h-[400px] flex items-center justify-center text-center">
         <div>
@@ -109,8 +113,6 @@ const OutputPreview = ({
     );
   }
 
-  const displayContent = isStreaming ? streamingContent : generatedInstruction;
-
   return (
     <div className="border rounded-lg bg-white h-[400px] shadow-sm flex flex-col">
       <div className="flex items-center justify-between p-3 border-b">
@@ -127,7 +129,7 @@ const OutputPreview = ({
       </div>
       <ScrollArea className="p-4 flex-grow" ref={scrollAreaRef}>
         <div className="whitespace-pre-wrap font-mono text-sm">
-          {displayContent}
+          {contentToDisplay}
           {isStreaming && isGenerating && (
             <span className="inline-block w-2 h-4 ml-1 bg-indigo-500 animate-pulse"></span>
           )}
