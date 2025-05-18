@@ -30,6 +30,16 @@ export interface PaymentDetails {
   currency: string;
 }
 
+// UPI payment details
+export const UPI_PAYMENT_DETAILS = {
+  upiId: 'adnanmuhammad4393@okicici',
+  amount: '199',
+  currency: 'INR',
+  beneficiaryName: 'Muhammed Adnan VV',
+  accountNumber: '19020100094298',
+  ifscCode: 'FDRL0001902'
+};
+
 /**
  * PaymentService class to handle payment operations
  */
@@ -48,8 +58,8 @@ class PaymentService {
     const status = localStorage.getItem(STORAGE_KEYS.PAYMENT_STATUS);
     const date = localStorage.getItem(STORAGE_KEYS.PAYMENT_DATE);
     const id = localStorage.getItem(STORAGE_KEYS.PAYMENT_ID);
-    const amount = localStorage.getItem(STORAGE_KEYS.PAYMENT_AMOUNT) || '199';
-    const currency = localStorage.getItem(STORAGE_KEYS.PAYMENT_CURRENCY) || 'INR';
+    const amount = localStorage.getItem(STORAGE_KEYS.PAYMENT_AMOUNT) || UPI_PAYMENT_DETAILS.amount;
+    const currency = localStorage.getItem(STORAGE_KEYS.PAYMENT_CURRENCY) || UPI_PAYMENT_DETAILS.currency;
 
     if (!status || !date) {
       return null;
@@ -69,8 +79,8 @@ class PaymentService {
    */
   recordPayment(paymentId: string = `pay_${Date.now()}`, status: string = PAYMENT_STATUS.COMPLETED): void {
     const date = new Date().toISOString();
-    const amount = '199';
-    const currency = 'INR';
+    const amount = UPI_PAYMENT_DETAILS.amount;
+    const currency = UPI_PAYMENT_DETAILS.currency;
 
     localStorage.setItem(STORAGE_KEYS.PAYMENT_STATUS, status);
     localStorage.setItem(STORAGE_KEYS.PAYMENT_DATE, date);

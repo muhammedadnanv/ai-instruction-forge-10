@@ -1,11 +1,13 @@
 
 import { useState, useEffect } from 'react';
 import paymentService, { PaymentDetails } from '@/services/paymentService';
+import { useToast } from './use-toast';
 
 export function usePayment() {
   const [hasPaid, setHasPaid] = useState(false);
   const [paymentDetails, setPaymentDetails] = useState<PaymentDetails | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
 
   // Check payment status on initial load
   useEffect(() => {
@@ -29,10 +31,28 @@ export function usePayment() {
       if (success) {
         setHasPaid(true);
         setPaymentDetails(paymentService.getPaymentDetails());
+        
+        toast({
+          title: "Payment Verified",
+          description: "Thank you for your payment. Full access enabled."
+        });
+        
+        return true;
+      } else {
+        toast({
+          title: "Payment Verification Failed",
+          description: "We couldn't verify your payment. Please try again.",
+          variant: "destructive"
+        });
+        return false;
       }
-      return success;
     } catch (error) {
       console.error("Payment verification error:", error);
+      toast({
+        title: "Verification Error",
+        description: "An error occurred while verifying your payment.",
+        variant: "destructive"
+      });
       return false;
     } finally {
       setIsLoading(false);
@@ -44,6 +64,10 @@ export function usePayment() {
     paymentService.clearPaymentData();
     setHasPaid(false);
     setPaymentDetails(null);
+    toast({
+      title: "Payment Reset",
+      description: "Payment status has been reset for testing."
+    });
   };
 
   return {

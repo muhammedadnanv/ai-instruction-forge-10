@@ -4,10 +4,11 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { Key } from "lucide-react";
+import { Key, Info } from "lucide-react";
 import geminiService from "@/services/geminiService";
 import PaymentDialog from "./PaymentDialog";
 import paymentService from "@/services/paymentService";
+import { usePayment } from "@/hooks/use-payment";
 
 interface ApiKeyDialogProps {
   open?: boolean;
@@ -22,7 +23,7 @@ const ApiKeyDialog = ({ open: controlledOpen, onOpenChange, onApiKeySubmit, onAp
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   const { toast } = useToast();
   const [hasStoredKey, setHasStoredKey] = useState(false);
-  const [hasPaid, setHasPaid] = useState(false);
+  const { hasPaid, verifyPayment } = usePayment();
   
   // Handle controlled/uncontrolled state
   const isControlled = controlledOpen !== undefined;
@@ -39,10 +40,11 @@ const ApiKeyDialog = ({ open: controlledOpen, onOpenChange, onApiKeySubmit, onAp
     const storedKey = geminiService.getApiKey();
     setHasStoredKey(!!storedKey);
     
-    // Check if payment has been made
-    const userHasPaid = paymentService.hasUserPaid();
-    setHasPaid(userHasPaid);
-  }, []);
+    // Pre-fill the input field with the stored API key (if available)
+    if (storedKey) {
+      setApiKey(storedKey);
+    }
+  }, [isOpen]);
 
   const handleSaveApiKey = () => {
     if (!apiKey.trim()) {
@@ -92,7 +94,6 @@ const ApiKeyDialog = ({ open: controlledOpen, onOpenChange, onApiKeySubmit, onAp
   };
 
   const handlePaymentComplete = () => {
-    setHasPaid(true);
     completeSetup();
   };
 
@@ -124,6 +125,14 @@ const ApiKeyDialog = ({ open: controlledOpen, onOpenChange, onApiKeySubmit, onAp
               onChange={(e) => setApiKey(e.target.value)}
               className="w-full"
             />
+            
+            <div className="mt-4 text-sm text-amber-600 bg-amber-50 p-3 rounded-md flex items-start gap-2">
+              <Info size={16} className="mt-0.5 flex-shrink-0" />
+              <p>
+                After setting your API key, a one-time payment of ₹199 is required to use the full features of InstructAI. 
+                You will be prompted for payment after saving your API key.
+              </p>
+            </div>
           </div>
           
           <DialogFooter>

@@ -3,8 +3,11 @@ import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Check, CreditCard, IndianRupee, Wallet, AlertCircle, Loader2, RefreshCw } from "lucide-react";
-import paymentService, { PAYMENT_STATUS } from "@/services/paymentService";
+import { Check, CreditCard, IndianRupee, Wallet, AlertCircle, Loader2, RefreshCw, Copy, FileText } from "lucide-react";
+import paymentService, { PAYMENT_STATUS, UPI_PAYMENT_DETAILS } from "@/services/paymentService";
+import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 
 interface PaymentDialogProps {
   open: boolean;
@@ -18,13 +21,13 @@ const PaymentDialog = ({ open, onOpenChange, onPaymentComplete }: PaymentDialogP
   const [paymentInitiated, setPaymentInitiated] = useState(false);
   const [verificationMessage, setVerificationMessage] = useState("");
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [paymentTab, setPaymentTab] = useState("upi");
   const { toast } = useToast();
   
-  const upiId = "adnanmuhammad4393@okicici";
-  const amount = "199";
+  const { upiId, amount, currency, beneficiaryName, accountNumber, ifscCode } = UPI_PAYMENT_DETAILS;
 
   // Generate UPI QR code link
-  const upiQrLink = `upi://pay?pa=${upiId}&am=${amount}&cu=INR&tn=InstructAI Payment`;
+  const upiQrLink = `upi://pay?pa=${upiId}&am=${amount}&cu=${currency}&tn=InstructAI Payment`;
   
   // Generate QR code image URL using a QR code API
   const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(upiQrLink)}`;
@@ -38,6 +41,23 @@ const PaymentDialog = ({ open, onOpenChange, onPaymentComplete }: PaymentDialogP
       }
     }
   }, [open]);
+
+  // Copy text to clipboard helper
+  const copyToClipboard = (text: string, label: string) => {
+    navigator.clipboard.writeText(text).then(() => {
+      toast({
+        title: "Copied!",
+        description: `${label} copied to clipboard`
+      });
+    }).catch(err => {
+      toast({
+        title: "Failed to copy",
+        description: "Please try copying manually",
+        variant: "destructive"
+      });
+      console.error("Failed to copy:", err);
+    });
+  };
 
   // Simulated payment verification
   const verifyPayment = async () => {
@@ -144,35 +164,134 @@ const PaymentDialog = ({ open, onOpenChange, onPaymentComplete }: PaymentDialogP
             Payment Required
           </DialogTitle>
           <DialogDescription>
-            A one-time payment of ₹199 is required to use this application.
+            A one-time payment of ₹{amount} is required to use this application.
           </DialogDescription>
         </DialogHeader>
         
         <div className="flex flex-col items-center justify-center py-4 space-y-4">
           {!isPaid ? (
             <>
-              <div className="bg-white p-3 rounded-lg border shadow-sm">
-                <img 
-                  src={qrCodeUrl} 
-                  alt="UPI Payment QR Code" 
-                  className="w-48 h-48 object-contain"
-                />
-              </div>
-              
-              <div className="text-center space-y-2">
-                <p className="font-medium">Scan with any UPI app to pay</p>
-                <p className="text-sm text-gray-500">UPI ID: {upiId}</p>
-                <p className="text-sm text-gray-500">Amount: ₹{amount}</p>
+              <Tabs value={paymentTab} onValueChange={setPaymentTab} className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="upi">UPI QR Code</TabsTrigger>
+                  <TabsTrigger value="bank">Bank Transfer</TabsTrigger>
+                </TabsList>
                 
-                <Button 
-                  onClick={handlePaymentInitiation}
-                  variant="outline" 
-                  size="sm"
-                  className="mt-2"
-                >
-                  Open UPI App
-                </Button>
-              </div>
+                <TabsContent value="upi" className="flex flex-col items-center space-y-4 mt-4">
+                  <div className="bg-white p-3 rounded-lg border shadow-sm">
+                    <img 
+                      src={qrCodeUrl} 
+                      alt="UPI Payment QR Code" 
+                      className="w-48 h-48 object-contain"
+                    />
+                  </div>
+                  
+                  <div className="text-center space-y-2">
+                    <p className="font-medium">Scan with any UPI app to pay</p>
+                    <div className="flex items-center justify-center gap-2">
+                      <Input 
+                        value={upiId} 
+                        readOnly 
+                        className="text-sm text-center w-64"
+                      />
+                      <Button 
+                        size="icon" 
+                        variant="outline" 
+                        onClick={() => copyToClipboard(upiId, "UPI ID")}
+                      >
+                        <Copy size={16} />
+                      </Button>
+                    </div>
+                    <p className="text-sm text-gray-500">Amount: ₹{amount}</p>
+                    
+                    <Button 
+                      onClick={handlePaymentInitiation}
+                      variant="outline" 
+                      size="sm"
+                      className="mt-2"
+                    >
+                      Open UPI App
+                    </Button>
+                  </div>
+                </TabsContent>
+                
+                <TabsContent value="bank" className="space-y-4 mt-4">
+                  <div className="border rounded-md p-4">
+                    <h3 className="font-medium mb-3">Beneficiary Details</h3>
+                    
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-gray-500">Name:</span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">{beneficiaryName}</span>
+                          <Button 
+                            size="icon" 
+                            variant="ghost" 
+                            className="h-6 w-6" 
+                            onClick={() => copyToClipboard(beneficiaryName, "Name")}
+                          >
+                            <Copy size={14} />
+                          </Button>
+                        </div>
+                      </div>
+                      
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-gray-500">Account Number:</span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">{accountNumber}</span>
+                          <Button 
+                            size="icon" 
+                            variant="ghost" 
+                            className="h-6 w-6" 
+                            onClick={() => copyToClipboard(accountNumber, "Account Number")}
+                          >
+                            <Copy size={14} />
+                          </Button>
+                        </div>
+                      </div>
+                      
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-gray-500">IFSC Code:</span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">{ifscCode}</span>
+                          <Button 
+                            size="icon" 
+                            variant="ghost" 
+                            className="h-6 w-6" 
+                            onClick={() => copyToClipboard(ifscCode, "IFSC Code")}
+                          >
+                            <Copy size={14} />
+                          </Button>
+                        </div>
+                      </div>
+                      
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-gray-500">Amount:</span>
+                        <Badge variant="outline" className="font-medium">₹{amount}</Badge>
+                      </div>
+                    </div>
+                    
+                    <div className="mt-4">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="w-full flex items-center gap-2" 
+                        onClick={() => {
+                          const details = `Name: ${beneficiaryName}\nAccount: ${accountNumber}\nIFSC: ${ifscCode}\nAmount: ₹${amount}`;
+                          copyToClipboard(details, "All details");
+                        }}
+                      >
+                        <FileText size={16} />
+                        Copy All Details
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  <div className="text-sm text-center text-gray-500">
+                    After making the bank transfer, click "Verify Payment" below.
+                  </div>
+                </TabsContent>
+              </Tabs>
               
               {verificationMessage && (
                 <div className={`flex items-center gap-2 text-sm ${isPaid ? 'text-green-600' : 'text-amber-600'}`}>

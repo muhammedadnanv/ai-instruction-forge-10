@@ -60,6 +60,31 @@ Step-by-step instructions with code examples where appropriate
 
 ## Troubleshooting
 Common issues and solutions`
+  },
+  {
+    name: "Prompt Engineer",
+    description: "Create effective AI prompts",
+    template: `# System Instruction
+You are an expert prompt engineer who creates clear, effective prompts for AI systems.
+
+# User Prompt
+{{input}}
+
+# Format
+## Role Definition
+Define the AI's role and expertise
+
+## Context
+Provide background information
+
+## Task Instructions
+Clear steps for what the AI should do
+
+## Format Requirements
+Specify output format, length, and style
+
+## Constraints
+Define any limitations or considerations`
   }
 ];
 
@@ -81,7 +106,7 @@ Make the prompt specific, clear, and optimized for the stated goal. Format it wi
   } else {
     // For Hugging Face
     return {
-      model: "", // Model ID will be provided later
+      model: "mistralai/Mistral-7B-Instruct-v0.2", // Default model, can be overridden
       messages: [
         {
           role: "system", 
@@ -102,5 +127,28 @@ Make the prompt specific, clear, and optimized for the stated goal. Format it wi
       ],
       temperature: 0.7
     };
+  }
+};
+
+// Helper function to determine the best AI model for a specific task
+export const getSuggestedModel = (taskType: string): { provider: string, model?: string } => {
+  switch (taskType.toLowerCase()) {
+    case "creative":
+    case "story":
+    case "content":
+      return { provider: "gemini", model: "gemini-pro" };
+    
+    case "analysis":
+    case "analytical":
+    case "report":
+      return { provider: "huggingface", model: "mistralai/Mistral-7B-Instruct-v0.2" };
+    
+    case "technical":
+    case "documentation":
+    case "code":
+      return { provider: "gemini", model: "gemini-pro" };
+    
+    default:
+      return { provider: "gemini" }; // Default to Gemini
   }
 };
