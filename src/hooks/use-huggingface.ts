@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { InferenceClient } from "@huggingface/inference";
+import { InferenceClient, ChatCompletionInputMessage } from "@huggingface/inference";
 import { useToast } from "@/hooks/use-toast";
 
 export interface HuggingFaceConfig {
@@ -12,12 +12,31 @@ export interface HuggingFaceMessage {
   content: string;
 }
 
+export type HuggingFaceProvider = 
+  | "auto" 
+  | "black-forest-labs"
+  | "cerebras" 
+  | "cohere" 
+  | "fal-ai" 
+  | "featherless-ai" 
+  | "fireworks-ai" 
+  | "groq" 
+  | "hf-inference" 
+  | "hyperbolic" 
+  | "nebius" 
+  | "novita" 
+  | "nscale" 
+  | "perplexity" 
+  | "text-gen-web" 
+  | "thebloke" 
+  | "together";
+
 export interface HuggingFaceRequest {
   model: string;
   messages: HuggingFaceMessage[];
   temperature?: number;
   max_tokens?: number;
-  provider?: string;
+  provider?: HuggingFaceProvider;
 }
 
 export interface HuggingFaceStreamCallbacks {
@@ -78,10 +97,16 @@ export function useHuggingFace() {
       
       const client = new InferenceClient(apiKey);
       
+      // Convert HuggingFaceMessage[] to ChatCompletionInputMessage[]
+      const messages = request.messages.map(msg => ({
+        role: msg.role,
+        content: msg.content
+      })) as ChatCompletionInputMessage[];
+      
       const chatCompletion = await client.chatCompletion({
         model: request.model,
-        provider: request.provider || "auto",
-        messages: request.messages,
+        provider: request.provider as HuggingFaceProvider || "auto",
+        messages: messages,
         temperature: request.temperature,
         max_tokens: request.max_tokens,
       });
