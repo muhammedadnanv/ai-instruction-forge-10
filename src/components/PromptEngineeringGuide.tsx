@@ -9,7 +9,9 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useGemini } from "@/hooks/use-gemini";
+import { useHuggingFace } from "@/hooks/use-huggingface";
 import { generatePromptRequest } from "@/utils/promptGenerator";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface TechniqueProps {
   title: string;
@@ -26,8 +28,11 @@ const PromptEngineeringGuide = () => {
   const [promptGoal, setPromptGoal] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedPrompt, setGeneratedPrompt] = useState("");
+  const [selectedProvider, setSelectedProvider] = useState("gemini");
+  const [selectedModel, setSelectedModel] = useState("");
   
   const { generateInstruction } = useGemini();
+  const { generateCompletion, hasApiKey } = useHuggingFace();
 
   const copyToClipboard = (text: string, index: number) => {
     navigator.clipboard.writeText(text);
@@ -52,24 +57,50 @@ const PromptEngineeringGuide = () => {
     
     setIsGenerating(true);
     try {
-      const request = generatePromptRequest(promptGoal);
-      const result = await generateInstruction(request);
+      if (selectedProvider === "huggingface" && !hasApiKey) {
+        toast({
+          title: "API Key Required",
+          description: "Please set your Hugging Face API key in the settings",
+          variant: "destructive"
+        });
+        return;
+      }
       
-      if (result?.generatedText) {
-        setGeneratedPrompt(result.generatedText);
+      let generatedText = "";
+      
+      if (selectedProvider === "gemini") {
+        // Generate with Gemini
+        const request = generatePromptRequest(promptGoal, "gemini") as any;
+        if (selectedModel) request.model = selectedModel;
+        
+        const result = await generateInstruction(request);
+        generatedText = result?.generatedText || "";
+      } else {
+        // Generate with Hugging Face
+        const request = generatePromptRequest(promptGoal, "huggingface") as any;
+        request.model = selectedModel || "meta-llama/Llama-3-8b-chat-hf"; // Default model
+        
+        const result = await generateCompletion(request);
+        generatedText = result || "";
+      }
+      
+      if (generatedText) {
+        setGeneratedPrompt(generatedText);
         
         // Save to localStorage for later use in IDE
         const generatedPrompts = JSON.parse(localStorage.getItem("generatedPrompts") || "[]");
         generatedPrompts.push({
           goal: promptGoal,
-          prompt: result.generatedText,
+          prompt: generatedText,
+          provider: selectedProvider,
+          model: selectedModel,
           timestamp: new Date().toISOString()
         });
         localStorage.setItem("generatedPrompts", JSON.stringify(generatedPrompts));
         
         toast({
           title: "Prompt Generated",
-          description: "Your custom prompt has been generated successfully"
+          description: `Your custom prompt has been generated successfully using ${selectedProvider}`
         });
       } else {
         throw new Error("Failed to generate prompt");
@@ -202,6 +233,25 @@ const PromptEngineeringGuide = () => {
     ]
   };
 
+  const ModelSelector = ({ selectedModel, onModelChange }) => {
+    return (
+      <Select 
+        value={selectedModel} 
+        onValueChange={onModelChange}
+        disabled={isGenerating}
+      >
+        <SelectTrigger>
+          <SelectValue placeholder="Select model" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="llama-3-8b-chat-hf">Llama-3-8b-chat-hf</SelectItem>
+          <SelectItem value="gpt-4">GPT-4</SelectItem>
+          <SelectItem value="gpt-3.5-turbo">GPT-3.5-turbo</SelectItem>
+        </SelectContent>
+      </Select>
+    );
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -302,6 +352,36 @@ const PromptEngineeringGuide = () => {
           </DialogHeader>
           
           <div className="py-4 space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="provider">AI Provider</Label>
+              <Select 
+                value={selectedProvider} 
+                onValueChange={setSelectedProvider}
+                disabled={isGenerating}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select provider" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="gemini">Google Gemini</SelectItem>
+                  <SelectItem value="huggingface" disabled={!hasApiKey}>
+                    Hugging Face {!hasApiKey && "(API Key Required)"}
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="model">Model</Label>
+              <ModelSelector 
+                selectedModel={selectedModel}
+                onModelChange={(model, provider) => {
+                  setSelectedModel(model);
+                  if (provider) setSelectedProvider(provider);
+                }}
+              />
+            </div>
+            
             <div className="space-y-2">
               <Label htmlFor="goal">Your Goal</Label>
               <Input

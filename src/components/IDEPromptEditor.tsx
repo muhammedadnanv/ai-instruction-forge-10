@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -62,24 +63,56 @@ Respond with clear, structured information using markdown formatting.`
     
     setIsProcessing(true);
     try {
-      const result = await generateInstruction({
-        prompt: `Generate a professional prompt that would help achieve the following goal: "${testInput}". 
-        Format the prompt with clear sections including system instructions, user input placeholder (use {{input}} syntax), 
-        and format requirements. Make it suitable for professional prompt engineering work.`,
-        temperature: 0.7,
-        framework: "CRISP",
-        model: selectedModel
-      });
-      
-      if (result?.generatedText) {
-        setPromptCode(result.generatedText);
-        setActiveTab("editor");
-        toast({
-          title: "Prompt Generated",
-          description: "A new prompt has been created based on your input"
+      if (selectedProvider === "gemini") {
+        // Use Gemini for prompt generation
+        const result = await generateInstruction({
+          prompt: `Generate a professional prompt that would help achieve the following goal: "${testInput}". 
+          Format the prompt with clear sections including system instructions, user input placeholder (use {{input}} syntax), 
+          and format requirements. Make it suitable for professional prompt engineering work.`,
+          temperature: 0.7,
+          framework: "CRISP",
+          model: selectedModel
         });
-      } else {
-        throw new Error("Failed to generate prompt");
+        
+        if (result?.generatedText) {
+          setPromptCode(result.generatedText);
+          setActiveTab("editor");
+          toast({
+            title: "Prompt Generated",
+            description: "A new prompt has been created based on your input"
+          });
+        } else {
+          throw new Error("Failed to generate prompt");
+        }
+      } else if (selectedProvider === "huggingface") {
+        // Use Hugging Face for prompt generation
+        const result = await generateCompletion({
+          model: selectedModel,
+          messages: [
+            {
+              role: "system",
+              content: "You are a prompt engineer who specializes in creating effective prompts."
+            },
+            {
+              role: "user",
+              content: `Generate a professional prompt that would help achieve the following goal: "${testInput}". 
+              Format the prompt with clear sections including system instructions, user input placeholder (use {{input}} syntax), 
+              and format requirements. Make it suitable for professional prompt engineering work.`
+            }
+          ],
+          temperature: 0.7
+        });
+        
+        if (result) {
+          setPromptCode(result);
+          setActiveTab("editor");
+          toast({
+            title: "Prompt Generated",
+            description: "A new prompt has been created based on your input using Hugging Face"
+          });
+        } else {
+          throw new Error("Failed to generate prompt with Hugging Face");
+        }
       }
     } catch (error) {
       console.error("Error generating prompt:", error);

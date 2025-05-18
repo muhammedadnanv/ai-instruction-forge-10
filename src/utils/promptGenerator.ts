@@ -1,5 +1,6 @@
 
 import { GeminiRequest } from "@/services/geminiService";
+import { HuggingFaceRequest } from "@/hooks/use-huggingface";
 
 export interface PromptTemplate {
   name: string;
@@ -62,10 +63,11 @@ Common issues and solutions`
   }
 ];
 
-export const generatePromptRequest = (goal: string): GeminiRequest => {
-  return {
-    prompt: `As an expert prompt engineer, create a professional prompt template for the following goal: "${goal}".
-    
+export const generatePromptRequest = (goal: string, provider: string = "gemini"): GeminiRequest | HuggingFaceRequest => {
+  if (provider === "gemini") {
+    return {
+      prompt: `As an expert prompt engineer, create a professional prompt template for the following goal: "${goal}".
+      
 Your prompt should include:
 1. A clear system instruction section defining the AI's role and expertise
 2. A placeholder for user input marked as {{input}}
@@ -73,7 +75,32 @@ Your prompt should include:
 4. Any relevant constraints or guidelines
 
 Make the prompt specific, clear, and optimized for the stated goal. Format it with clear section headers.`,
-    temperature: 0.7,
-    framework: "CRISP"
-  };
+      temperature: 0.7,
+      framework: "CRISP"
+    };
+  } else {
+    // For Hugging Face
+    return {
+      model: "", // Model ID will be provided later
+      messages: [
+        {
+          role: "system", 
+          content: "You are an expert prompt engineer who creates professional prompts."
+        },
+        {
+          role: "user",
+          content: `Create a professional prompt template for the following goal: "${goal}".
+          
+Your prompt should include:
+1. A clear system instruction section defining the AI's role and expertise
+2. A placeholder for user input marked as {{input}}
+3. Specific format instructions for the desired output
+4. Any relevant constraints or guidelines
+
+Make the prompt specific, clear, and optimized for the stated goal. Format it with clear section headers.`
+        }
+      ],
+      temperature: 0.7
+    };
+  }
 };
