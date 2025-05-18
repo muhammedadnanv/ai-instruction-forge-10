@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useGemini } from "@/hooks/use-gemini";
+import { useHuggingFace } from "@/hooks/use-huggingface";
 import { useToast } from "@/hooks/use-toast";
 import { Code, Play, Save, FileCode, Settings, FileJson, Download, Sparkles, History } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -38,6 +39,7 @@ Respond with clear, structured information using markdown formatting.`
   const [temperature, setTemperature] = useState([0.7]);
   const [maxTokens, setMaxTokens] = useState([1000]);
   const [selectedModel, setSelectedModel] = useState("");
+  const [selectedProvider, setSelectedProvider] = useState("gemini");
   const [promptHistory, setPromptHistory] = useState<Array<{
     promptCode: string;
     response: string;
@@ -45,6 +47,7 @@ Respond with clear, structured information using markdown formatting.`
   }>>([]);
   
   const { generateInstruction, streamInstruction, isLoading, isStreaming } = useGemini();
+  const { generateCompletion, isLoading: isHfLoading } = useHuggingFace();
   const { toast } = useToast();
   
   const autoGeneratePrompt = async () => {
@@ -104,52 +107,59 @@ Respond with clear, structured information using markdown formatting.`
     try {
       const processedPrompt = promptCode.replace("{{input}}", testInput);
       
-      await streamInstruction(
-        {
-          prompt: processedPrompt,
-          temperature: temperature[0],
-          maxTokens: maxTokens[0],
-          framework: framework !== "none" ? framework : undefined,
-          model: selectedModel
-        },
-        {
-          onStart: () => {
-            setResponse("");
+      if (selectedProvider === "gemini") {
+        await streamInstruction(
+          {
+            prompt: processedPrompt,
+            temperature: temperature[0],
+            maxTokens: maxTokens[0],
+            framework: framework !== "none" ? framework : undefined,
+            model: selectedModel
           },
-          onUpdate: (chunk) => {
-            setResponse(prev => prev + chunk);
-          },
-          onComplete: (fullText) => {
-            setResponse(fullText);
-            
-            // Add to history
-            const historyItem = {
-              promptCode: promptCode,
-              response: fullText,
-              timestamp: new Date().toISOString()
-            };
-            
-            setPromptHistory(prev => {
-              const newHistory = [historyItem, ...prev];
-              // Keep only last 10 items for memory management
-              if (newHistory.length > 10) {
-                return newHistory.slice(0, 10);
-              }
-              return newHistory;
-            });
-            
-            setActiveTab("output");
-          },
-          onError: (error) => {
-            console.error("Error streaming response:", error);
-            toast({
-              title: "Response Error",
-              description: error.message,
-              variant: "destructive"
-            });
+          {
+            onStart: () => {
+              setResponse("");
+            },
+            onUpdate: (chunk) => {
+              setResponse(prev => prev + chunk);
+            },
+            onComplete: (fullText) => {
+              setResponse(fullText);
+              handleAddToHistory(fullText);
+              setActiveTab("output");
+            },
+            onError: (error) => {
+              console.error("Error streaming response:", error);
+              toast({
+                title: "Response Error",
+                description: error.message,
+                variant: "destructive"
+              });
+            }
           }
+        );
+      } else if (selectedProvider === "huggingface") {
+        // For HuggingFace we use the non-streaming API
+        const result = await generateCompletion({
+          model: selectedModel,
+          messages: [
+            {
+              role: "system",
+              content: processedPrompt
+            }
+          ],
+          temperature: temperature[0],
+          max_tokens: maxTokens[0]
+        });
+        
+        if (result) {
+          setResponse(result);
+          handleAddToHistory(result);
+          setActiveTab("output");
+        } else {
+          throw new Error("No response from Hugging Face model");
         }
-      );
+      }
     } catch (error) {
       console.error("Error running prompt:", error);
       toast({
@@ -160,6 +170,24 @@ Respond with clear, structured information using markdown formatting.`
     } finally {
       setIsProcessing(false);
     }
+  };
+  
+  const handleAddToHistory = (responseText: string) => {
+    // Add to history
+    const historyItem = {
+      promptCode: promptCode,
+      response: responseText,
+      timestamp: new Date().toISOString()
+    };
+    
+    setPromptHistory(prev => {
+      const newHistory = [historyItem, ...prev];
+      // Keep only last 10 items for memory management
+      if (newHistory.length > 10) {
+        return newHistory.slice(0, 10);
+      }
+      return newHistory;
+    });
   };
   
   const savePrompt = () => {
@@ -174,7 +202,8 @@ Respond with clear, structured information using markdown formatting.`
       framework: framework,
       temperature: temperature[0],
       maxTokens: maxTokens[0],
-      model: selectedModel
+      model: selectedModel,
+      provider: selectedProvider
     };
     
     savedPrompts.push(newPrompt);
@@ -233,6 +262,13 @@ export function generatePrompt(input) {
     }
   };
 
+  const handleModelChange = (model: string, provider?: string) => {
+    setSelectedModel(model);
+    if (provider) {
+      setSelectedProvider(provider);
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row justify-between gap-4 mb-4">
@@ -267,7 +303,7 @@ export function generatePrompt(input) {
             variant="default" 
             size="sm" 
             onClick={runPrompt}
-            disabled={isProcessing}
+            disabled={isProcessing || isLoading || isHfLoading || isStreaming}
             className="flex items-center gap-1"
           >
             <Play className="h-4 w-4" />
@@ -338,10 +374,10 @@ export function generatePrompt(input) {
                 <CardContent className="p-4">
                   <div className="space-y-4">
                     <div>
-                      <h3 className="font-medium mb-2">Gemini Model</h3>
+                      <h3 className="font-medium mb-2">AI Model</h3>
                       <ModelSelector
                         selectedModel={selectedModel}
-                        onModelChange={setSelectedModel}
+                        onModelChange={handleModelChange}
                         showDetails={true}
                       />
                     </div>
@@ -530,6 +566,7 @@ export function generatePrompt(input) {
                           timestamp: new Date().toISOString(),
                           name: promptName,
                           model: selectedModel || "default",
+                          provider: selectedProvider,
                           temperature: temperature[0],
                           maxTokens: maxTokens[0],
                           framework: framework
