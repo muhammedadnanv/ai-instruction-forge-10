@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -9,43 +8,48 @@ import geminiService from "@/services/geminiService";
 import PaymentDialog from "./PaymentDialog";
 import paymentService from "@/services/paymentService";
 import { usePayment } from "@/hooks/use-payment";
-
 interface ApiKeyDialogProps {
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
   onApiKeySubmit?: () => void;
   onApiKeySet?: () => void;
 }
-
-const ApiKeyDialog = ({ open: controlledOpen, onOpenChange, onApiKeySubmit, onApiKeySet }: ApiKeyDialogProps) => {
+const ApiKeyDialog = ({
+  open: controlledOpen,
+  onOpenChange,
+  onApiKeySubmit,
+  onApiKeySet
+}: ApiKeyDialogProps) => {
   const [apiKey, setApiKey] = useState("");
   const [open, setOpen] = useState(false);
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
-  const { toast } = useToast();
+  const {
+    toast
+  } = useToast();
   const [hasStoredKey, setHasStoredKey] = useState(false);
-  const { hasPaid, verifyPayment } = usePayment();
-  
+  const {
+    hasPaid,
+    verifyPayment
+  } = usePayment();
+
   // Handle controlled/uncontrolled state
   const isControlled = controlledOpen !== undefined;
   const isOpen = isControlled ? controlledOpen : open;
-  
   const handleOpenChange = (newOpen: boolean) => {
     if (!isControlled) {
       setOpen(newOpen);
     }
     onOpenChange?.(newOpen);
   };
-
   useEffect(() => {
     const storedKey = geminiService.getApiKey();
     setHasStoredKey(!!storedKey);
-    
+
     // Pre-fill the input field with the stored API key (if available)
     if (storedKey) {
       setApiKey(storedKey);
     }
   }, [isOpen]);
-
   const handleSaveApiKey = () => {
     if (!apiKey.trim()) {
       toast({
@@ -55,11 +59,10 @@ const ApiKeyDialog = ({ open: controlledOpen, onOpenChange, onApiKeySubmit, onAp
       });
       return;
     }
-
     try {
       geminiService.setApiKey(apiKey.trim());
       setHasStoredKey(true);
-      
+
       // If user hasn't paid, show payment dialog
       if (!hasPaid) {
         setShowPaymentDialog(true);
@@ -75,38 +78,27 @@ const ApiKeyDialog = ({ open: controlledOpen, onOpenChange, onApiKeySubmit, onAp
       });
     }
   };
-  
   const completeSetup = () => {
     toast({
       title: "API Key Saved",
       description: "Your Gemini API key has been saved"
     });
-    
     if (onApiKeySet) {
       onApiKeySet();
     }
-    
     if (onApiKeySubmit) {
       onApiKeySubmit();
     }
-    
     handleOpenChange(false);
   };
-
   const handlePaymentComplete = () => {
     completeSetup();
   };
-
   const buttonLabel = hasStoredKey ? "Update API Key" : "Set API Key";
-
-  return (
-    <>
+  return <>
       <Dialog open={isOpen} onOpenChange={handleOpenChange}>
         <DialogTrigger asChild>
-          <Button variant={hasStoredKey ? "outline" : "default"} className="gap-2">
-            <Key size={16} />
-            {buttonLabel}
-          </Button>
+          
         </DialogTrigger>
         <DialogContent>
           <DialogHeader>
@@ -118,13 +110,7 @@ const ApiKeyDialog = ({ open: controlledOpen, onOpenChange, onApiKeySubmit, onAp
           </DialogHeader>
           
           <div className="py-4">
-            <Input
-              type="password"
-              placeholder="Enter your Gemini API key"
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-              className="w-full"
-            />
+            <Input type="password" placeholder="Enter your Gemini API key" value={apiKey} onChange={e => setApiKey(e.target.value)} className="w-full" />
             
             <div className="mt-4 text-sm text-amber-600 bg-amber-50 p-3 rounded-md flex items-start gap-2">
               <Info size={16} className="mt-0.5 flex-shrink-0" />
@@ -142,13 +128,7 @@ const ApiKeyDialog = ({ open: controlledOpen, onOpenChange, onApiKeySubmit, onAp
         </DialogContent>
       </Dialog>
       
-      <PaymentDialog 
-        open={showPaymentDialog} 
-        onOpenChange={setShowPaymentDialog} 
-        onPaymentComplete={handlePaymentComplete} 
-      />
-    </>
-  );
+      <PaymentDialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog} onPaymentComplete={handlePaymentComplete} />
+    </>;
 };
-
 export default ApiKeyDialog;
