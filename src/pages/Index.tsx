@@ -103,6 +103,13 @@ export default function Index() {
             />
           </>
         )}
+        
+        {/* Add the ProSubscriptionDialog regardless of authentication status */}
+        <ProSubscriptionDialog
+          open={proSubscriptionDialogOpen}
+          onOpenChange={setProSubscriptionDialogOpen}
+          onSubscriptionComplete={handleProSubscriptionComplete}
+        />
 
         <header className="mb-8">
           <motion.div
