@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -36,7 +37,7 @@ export default function Index() {
   const [proSubscriptionDialogOpen, setProSubscriptionDialogOpen] = useState(false);
   const { toast } = useToast();
   const isMobile = useIsMobile();
-  const { isPro } = usePayment();
+  const { isPro, hasPaid } = usePayment();
 
   // Check authentication status on component mount
   useEffect(() => {
@@ -75,6 +76,10 @@ export default function Index() {
   const handlePaymentComplete = () => {
     setPaymentDialogOpen(false);
     setIsAuthenticated(true);
+    toast({
+      title: "Payment Successful",
+      description: "Your payment has been processed. You now have full access to the app."
+    });
   };
   
   const handleProSubscriptionComplete = () => {

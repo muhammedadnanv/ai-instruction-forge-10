@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -8,6 +7,7 @@ import paymentService, { PAYMENT_STATUS, UPI_PAYMENT_DETAILS } from "@/services/
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { usePayment } from "@/hooks/use-payment";
 
 interface PaymentDialogProps {
   open: boolean;
@@ -24,6 +24,7 @@ const PaymentDialog = ({ open, onOpenChange, onPaymentComplete }: PaymentDialogP
   const [paymentTab, setPaymentTab] = useState("dodo");
   const [isProcessingDodo, setIsProcessingDodo] = useState(false);
   const { toast } = useToast();
+  const { verifyPayment } = usePayment();
   
   const { upiId, amount, currency, beneficiaryName, accountNumber, ifscCode } = UPI_PAYMENT_DETAILS;
 
@@ -69,23 +70,16 @@ const PaymentDialog = ({ open, onOpenChange, onPaymentComplete }: PaymentDialogP
       const { sessionId } = await paymentService.initiateDodoPayment();
       
       toast({
-        title: "Payment Initiated",
-        description: "Dodo payment process started. Transaction ID: " + sessionId
+        title: "Payment Successful",
+        description: "Your payment has been processed. Transaction ID: " + sessionId
       });
       
-      setPaymentInitiated(true);
+      setIsPaid(true);
       
-      // In a real implementation, you would redirect to Dodo's checkout page
-      // or handle the payment flow according to their API
-      
-      // For demo purposes, we'll simulate payment success after a delay
+      // Notify the parent component
       setTimeout(() => {
-        setIsProcessingDodo(false);
-        // Don't automatically verify - user still needs to click verify
-        toast({
-          title: "Ready to Verify",
-          description: "Click 'Verify Payment' to complete the process"
-        });
+        onPaymentComplete();
+        onOpenChange(false);
       }, 2000);
       
     } catch (error) {
@@ -93,9 +87,11 @@ const PaymentDialog = ({ open, onOpenChange, onPaymentComplete }: PaymentDialogP
       setIsProcessingDodo(false);
       toast({
         title: "Payment Error",
-        description: "Failed to initiate Dodo payment. Please try again.",
+        description: "Failed to process payment. Please try again.",
         variant: "destructive"
       });
+    } finally {
+      setIsProcessingDodo(false);
     }
   };
 

@@ -138,8 +138,17 @@ class PaymentService {
       // Simulate API call
       setTimeout(() => {
         const paymentType = isSubscription ? 'subscription' : 'one-time';
+        const sessionId = `dodo_${paymentType}_${Date.now()}`;
+        
+        // Automatically record payment for demo purposes
+        if (isSubscription) {
+          this.recordSubscription(sessionId);
+        } else {
+          this.recordPayment(sessionId);
+        }
+        
         resolve({
-          sessionId: `dodo_${paymentType}_${Date.now()}`
+          sessionId
         });
       }, 1000);
     });
@@ -185,22 +194,19 @@ class PaymentService {
     console.log('Verifying payment with Dodo using API Key:', DODO_API_KEY);
     
     return new Promise((resolve) => {
-      // Simulate verification delay
+      // For demo purposes, always verify successfully
       setTimeout(() => {
-        // Higher chance of success if payment was initiated
-        const randomSuccess = paymentInitiated || Math.random() > 0.3;
-        
-        if (randomSuccess) {
-          if (isSubscription) {
+        if (isSubscription) {
+          if (!this.isProSubscriber()) {
             this.recordSubscription();
-          } else {
+          }
+        } else {
+          if (!this.hasUserPaid()) {
             this.recordPayment();
           }
-          resolve(true);
-        } else {
-          resolve(false);
         }
-      }, 2000);
+        resolve(true);
+      }, 1000);
     });
   }
 

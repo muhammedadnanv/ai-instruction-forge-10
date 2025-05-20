@@ -30,7 +30,7 @@ export function usePayment() {
   }, []);
 
   // Verification function
-  const verifyPayment = async (paymentInitiated = false, isSubscription = false) => {
+  const verifyPayment = async (paymentInitiated = true, isSubscription = false) => {
     setIsLoading(true);
     try {
       const success = await paymentService.verifyPayment(paymentInitiated, isSubscription);

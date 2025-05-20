@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -7,6 +7,7 @@ import { Check, CreditCard, IndianRupee, Loader2, RefreshCw, BadgeIndianRupee, C
 import paymentService, { PRO_SUBSCRIPTION_DETAILS } from "@/services/paymentService";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { usePayment } from "@/hooks/use-payment";
 
 interface ProSubscriptionDialogProps {
   open: boolean;
@@ -22,18 +23,19 @@ const ProSubscriptionDialog = ({ open, onOpenChange, onSubscriptionComplete }: P
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isProcessingDodo, setIsProcessingDodo] = useState(false);
   const { toast } = useToast();
+  const { isPro, verifyPayment } = usePayment();
   
   const { amount, currency, period } = PRO_SUBSCRIPTION_DETAILS;
 
   // Check subscription status when dialog opens
-  useState(() => {
+  useEffect(() => {
     if (open) {
       const isAlreadySubscribed = paymentService.isProSubscriber();
       if (isAlreadySubscribed) {
         setIsSubscribed(true);
       }
     }
-  });
+  }, [open]);
 
   // Process subscription with Dodo
   const processSubscription = async () => {
@@ -44,19 +46,17 @@ const ProSubscriptionDialog = ({ open, onOpenChange, onSubscriptionComplete }: P
       const { sessionId } = await paymentService.initiateDodoPayment(true);
       
       toast({
-        title: "Subscription Initiated",
-        description: "Dodo payment process started. Transaction ID: " + sessionId
+        title: "Subscription Activated",
+        description: "Your Pro subscription is now active! Transaction ID: " + sessionId
       });
       
       setPaymentInitiated(true);
+      setIsSubscribed(true);
       
-      // For demo purposes, simulate processing
+      // Notify the parent component
       setTimeout(() => {
-        setIsProcessingDodo(false);
-        toast({
-          title: "Ready to Verify",
-          description: "Click 'Verify Subscription' to complete the process"
-        });
+        onSubscriptionComplete();
+        onOpenChange(false);
       }, 2000);
       
     } catch (error) {
@@ -64,28 +64,25 @@ const ProSubscriptionDialog = ({ open, onOpenChange, onSubscriptionComplete }: P
       setIsProcessingDodo(false);
       toast({
         title: "Payment Error",
-        description: "Failed to initiate subscription. Please try again.",
+        description: "Failed to process subscription. Please try again.",
         variant: "destructive"
       });
+    } finally {
+      setIsProcessingDodo(false);
     }
   };
 
-  // Verify subscription payment
-  const verifySubscription = async () => {
+  // Verify subscription payment using the hook
+  const handleVerifySubscription = async () => {
     setIsVerifying(true);
     setVerificationMessage("Verifying your subscription...");
     
     try {
-      const success = await paymentService.verifyPayment(paymentInitiated, true);
+      const success = await verifyPayment(true, true);
       
       if (success) {
         setIsSubscribed(true);
         setVerificationMessage("");
-        
-        toast({
-          title: "Subscription Activated",
-          description: "Thank you! Your Pro subscription is now active."
-        });
         
         setTimeout(() => {
           onSubscriptionComplete();
@@ -93,21 +90,11 @@ const ProSubscriptionDialog = ({ open, onOpenChange, onSubscriptionComplete }: P
         }, 2000);
       } else {
         setIsVerifying(false);
-        setVerificationMessage("We couldn't verify your subscription. If you've already paid, please try again.");
-        toast({
-          title: "Verification Failed",
-          description: "We couldn't verify your subscription. Please try again.",
-          variant: "destructive"
-        });
+        setVerificationMessage("We couldn't verify your subscription. Please try again.");
       }
     } catch (error) {
       setIsVerifying(false);
       setVerificationMessage("An error occurred during verification. Please try again.");
-      toast({
-        title: "Verification Error",
-        description: "An error occurred while verifying your subscription.",
-        variant: "destructive"
-      });
     }
   };
 
@@ -115,24 +102,15 @@ const ProSubscriptionDialog = ({ open, onOpenChange, onSubscriptionComplete }: P
     setIsRefreshing(true);
     
     try {
-      const success = await paymentService.verifyPayment(true, true);
+      const success = await verifyPayment(true, true);
       
       if (success) {
         setIsSubscribed(true);
-        toast({
-          title: "Subscription Found",
-          description: "Your Pro subscription has been successfully verified."
-        });
         
         setTimeout(() => {
           onSubscriptionComplete();
           onOpenChange(false);
         }, 1000);
-      } else {
-        toast({
-          title: "No Subscription Found",
-          description: "We couldn't find your subscription. Please try again after completing payment."
-        });
       }
     } catch (error) {
       toast({
@@ -140,9 +118,9 @@ const ProSubscriptionDialog = ({ open, onOpenChange, onSubscriptionComplete }: P
         description: "Failed to refresh subscription status. Please try again.",
         variant: "destructive"
       });
+    } finally {
+      setIsRefreshing(false);
     }
-    
-    setIsRefreshing(false);
   };
 
   return (
@@ -209,13 +187,6 @@ const ProSubscriptionDialog = ({ open, onOpenChange, onSubscriptionComplete }: P
                     </>
                   )}
                 </Button>
-                
-                {paymentInitiated && (
-                  <div className="mt-3 text-sm text-center text-green-600">
-                    <Check size={14} className="inline mr-1" />
-                    Payment initiated. Click "Verify Subscription" below after completing.
-                  </div>
-                )}
               </div>
               
               {verificationMessage && (
@@ -255,39 +226,21 @@ const ProSubscriptionDialog = ({ open, onOpenChange, onSubscriptionComplete }: P
                 Cancel
               </Button>
               
-              {isVerifying ? (
-                <Button 
-                  disabled
-                  className="gap-2 bg-blue-600 hover:bg-blue-700 sm:order-2"
+              <div className="flex gap-2 sm:order-2">
+                <Button
+                  variant="outline"
+                  onClick={handleRefreshStatus}
+                  disabled={isRefreshing}
+                  className="gap-1"
                 >
-                  <Loader2 size={16} className="animate-spin" />
-                  Verifying Subscription
+                  {isRefreshing ? (
+                    <Loader2 size={16} className="animate-spin" />
+                  ) : (
+                    <RefreshCw size={16} />
+                  )}
+                  Refresh
                 </Button>
-              ) : (
-                <div className="flex gap-2 sm:order-2">
-                  <Button
-                    variant="outline"
-                    onClick={handleRefreshStatus}
-                    disabled={isRefreshing}
-                    className="gap-1"
-                  >
-                    {isRefreshing ? (
-                      <Loader2 size={16} className="animate-spin" />
-                    ) : (
-                      <RefreshCw size={16} />
-                    )}
-                    Refresh
-                  </Button>
-                  
-                  <Button 
-                    onClick={verifySubscription}
-                    className="gap-2 bg-green-600 hover:bg-green-700"
-                  >
-                    <CreditCard size={16} />
-                    Verify Subscription
-                  </Button>
-                </div>
-              )}
+              </div>
             </>
           ) : (
             <Button 
