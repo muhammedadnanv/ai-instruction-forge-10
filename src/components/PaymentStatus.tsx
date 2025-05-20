@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import PaymentDialog from "@/components/PaymentDialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { CreditCard, Check, AlertTriangle, Info } from "lucide-react";
+import { CreditCard, Check, AlertCircle, Wallet } from "lucide-react";
 
 interface PaymentStatusProps {
   showReset?: boolean;
@@ -65,7 +65,7 @@ const PaymentStatus = ({ showReset = false }: PaymentStatusProps) => {
         <Tooltip>
           <TooltipTrigger asChild>
             <Badge variant="outline" className="bg-amber-50 text-amber-600 hover:bg-amber-100 cursor-default">
-              <AlertTriangle size={14} className="mr-1" /> Payment Required
+              <AlertCircle size={14} className="mr-1" /> Payment Required
             </Badge>
           </TooltipTrigger>
           <TooltipContent>
@@ -80,7 +80,7 @@ const PaymentStatus = ({ showReset = false }: PaymentStatusProps) => {
         className="h-7 text-xs gap-1 bg-gradient-to-r from-blue-600 to-indigo-600"
         onClick={() => setShowPaymentDialog(true)}
       >
-        <CreditCard size={14} /> Make Payment
+        <Wallet size={14} /> Pay with Dodo
       </Button>
 
       <PaymentDialog

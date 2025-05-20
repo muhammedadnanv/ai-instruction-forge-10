@@ -21,7 +21,8 @@ const PaymentDialog = ({ open, onOpenChange, onPaymentComplete }: PaymentDialogP
   const [paymentInitiated, setPaymentInitiated] = useState(false);
   const [verificationMessage, setVerificationMessage] = useState("");
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [paymentTab, setPaymentTab] = useState("upi");
+  const [paymentTab, setPaymentTab] = useState("dodo");
+  const [isProcessingDodo, setIsProcessingDodo] = useState(false);
   const { toast } = useToast();
   
   const { upiId, amount, currency, beneficiaryName, accountNumber, ifscCode } = UPI_PAYMENT_DETAILS;
@@ -57,6 +58,45 @@ const PaymentDialog = ({ open, onOpenChange, onPaymentComplete }: PaymentDialogP
       });
       console.error("Failed to copy:", err);
     });
+  };
+
+  // Process payment with Dodo
+  const processDodoPayment = async () => {
+    setIsProcessingDodo(true);
+    
+    try {
+      // Call the Dodo payment initiation
+      const { sessionId } = await paymentService.initiateDodoPayment();
+      
+      toast({
+        title: "Payment Initiated",
+        description: "Dodo payment process started. Transaction ID: " + sessionId
+      });
+      
+      setPaymentInitiated(true);
+      
+      // In a real implementation, you would redirect to Dodo's checkout page
+      // or handle the payment flow according to their API
+      
+      // For demo purposes, we'll simulate payment success after a delay
+      setTimeout(() => {
+        setIsProcessingDodo(false);
+        // Don't automatically verify - user still needs to click verify
+        toast({
+          title: "Ready to Verify",
+          description: "Click 'Verify Payment' to complete the process"
+        });
+      }, 2000);
+      
+    } catch (error) {
+      console.error("Dodo payment error:", error);
+      setIsProcessingDodo(false);
+      toast({
+        title: "Payment Error",
+        description: "Failed to initiate Dodo payment. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   // Simulated payment verification
@@ -172,10 +212,52 @@ const PaymentDialog = ({ open, onOpenChange, onPaymentComplete }: PaymentDialogP
           {!isPaid ? (
             <>
               <Tabs value={paymentTab} onValueChange={setPaymentTab} className="w-full">
-                <TabsList className="grid w-full grid-cols-2">
+                <TabsList className="grid w-full grid-cols-3">
+                  <TabsTrigger value="dodo">Dodo Pay</TabsTrigger>
                   <TabsTrigger value="upi">UPI QR Code</TabsTrigger>
                   <TabsTrigger value="bank">Bank Transfer</TabsTrigger>
                 </TabsList>
+                
+                <TabsContent value="dodo" className="flex flex-col items-center space-y-4 mt-4">
+                  <div className="bg-white p-5 rounded-lg border-2 border-blue-500 shadow-md w-full">
+                    <div className="text-center mb-4">
+                      <h3 className="text-lg font-semibold mb-1">Pay with Dodo</h3>
+                      <p className="text-sm text-gray-600">Fast and secure payment gateway</p>
+                    </div>
+                    
+                    <div className="bg-blue-50 p-3 rounded-md mb-4">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm">Amount:</span>
+                        <Badge variant="outline" className="font-medium bg-blue-100">₹{amount}</Badge>
+                      </div>
+                    </div>
+                    
+                    <Button 
+                      onClick={processDodoPayment} 
+                      disabled={isProcessingDodo}
+                      className="w-full bg-blue-600 hover:bg-blue-700"
+                    >
+                      {isProcessingDodo ? (
+                        <>
+                          <Loader2 size={16} className="mr-2 animate-spin" />
+                          Processing...
+                        </>
+                      ) : (
+                        <>
+                          <CreditCard size={16} className="mr-2" />
+                          Pay Now with Dodo
+                        </>
+                      )}
+                    </Button>
+                    
+                    {paymentInitiated && (
+                      <div className="mt-3 text-sm text-center text-green-600">
+                        <Check size={14} className="inline mr-1" />
+                        Payment initiated. Click "Verify Payment" below after completing.
+                      </div>
+                    )}
+                  </div>
+                </TabsContent>
                 
                 <TabsContent value="upi" className="flex flex-col items-center space-y-4 mt-4">
                   <div className="bg-white p-3 rounded-lg border shadow-sm">
@@ -306,7 +388,7 @@ const PaymentDialog = ({ open, onOpenChange, onPaymentComplete }: PaymentDialogP
               
               <div className="flex gap-2 items-center justify-center mt-4 text-xs text-gray-500">
                 <Wallet size={14} />
-                <span>Google Pay, PhonePe, Paytm, BHIM & other UPI apps supported</span>
+                <span>Dodo Pay, Google Pay, PhonePe, Paytm, BHIM & other UPI apps supported</span>
               </div>
             </>
           ) : (

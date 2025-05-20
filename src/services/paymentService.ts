@@ -40,6 +40,9 @@ export const UPI_PAYMENT_DETAILS = {
   ifscCode: 'FDRL0001902'
 };
 
+// Dodo payment gateway configuration
+const DODO_API_KEY = 'VjyJF4pywuQ1M5du.CR8UuaFRFuyIA36fqnQkETWXtYxeEP_2aziowRWwAt8YgIsF';
+
 /**
  * PaymentService class to handle payment operations
  */
@@ -75,9 +78,27 @@ class PaymentService {
   }
 
   /**
+   * Initialize Dodo payment
+   * This would typically make an API call to Dodo to start a payment session
+   */
+  initiateDodoPayment(): Promise<{sessionId: string}> {
+    // In a real implementation, this would make an API call to Dodo
+    console.log('Initiating Dodo payment with API Key:', DODO_API_KEY);
+    
+    return new Promise((resolve) => {
+      // Simulate API call
+      setTimeout(() => {
+        resolve({
+          sessionId: `dodo_session_${Date.now()}`
+        });
+      }, 1000);
+    });
+  }
+
+  /**
    * Record a payment
    */
-  recordPayment(paymentId: string = `pay_${Date.now()}`, status: string = PAYMENT_STATUS.COMPLETED): void {
+  recordPayment(paymentId: string = `dodo_${Date.now()}`, status: string = PAYMENT_STATUS.COMPLETED): void {
     const date = new Date().toISOString();
     const amount = UPI_PAYMENT_DETAILS.amount;
     const currency = UPI_PAYMENT_DETAILS.currency;
@@ -91,10 +112,12 @@ class PaymentService {
   }
 
   /**
-   * Verify a payment
-   * In a real implementation, this would call an API to verify with the payment provider
+   * Verify a payment with Dodo
+   * In a real implementation, this would call Dodo's API to verify the payment
    */
   verifyPayment(paymentInitiated: boolean): Promise<boolean> {
+    console.log('Verifying payment with Dodo using API Key:', DODO_API_KEY);
+    
     return new Promise((resolve) => {
       // Simulate verification delay
       setTimeout(() => {
