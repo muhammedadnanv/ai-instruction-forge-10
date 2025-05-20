@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -25,7 +24,7 @@ const PaymentDialog = ({ open, onOpenChange, onPaymentComplete }: PaymentDialogP
   const [paymentTab, setPaymentTab] = useState("dodo");
   const [isProcessingDodo, setIsProcessingDodo] = useState(false);
   const { toast } = useToast();
-  const { verifyPayment } = usePayment();
+  const { verifyPaymentStatus } = usePayment(); // Renamed to avoid conflicts
   
   const { upiId, amount, currency, beneficiaryName, accountNumber, ifscCode } = UPI_PAYMENT_DETAILS;
 
@@ -102,7 +101,7 @@ const PaymentDialog = ({ open, onOpenChange, onPaymentComplete }: PaymentDialogP
     setVerificationMessage("Verifying your payment...");
     
     try {
-      const success = await paymentService.verifyPayment(paymentInitiated);
+      const success = await verifyPaymentStatus(paymentInitiated);
       
       if (success) {
         setIsPaid(true);
@@ -110,7 +109,7 @@ const PaymentDialog = ({ open, onOpenChange, onPaymentComplete }: PaymentDialogP
         
         toast({
           title: "Payment Verified",
-          description: "Thank you for your payment. You can now use all features."
+          description: "Thank you for your payment. You now have full access to all features."
         });
         
         setTimeout(() => {
@@ -162,7 +161,7 @@ const PaymentDialog = ({ open, onOpenChange, onPaymentComplete }: PaymentDialogP
     setIsRefreshing(true);
     
     try {
-      const success = await paymentService.verifyPayment(true);
+      const success = await verifyPaymentStatus(true);
       
       if (success) {
         setIsPaid(true);
@@ -192,6 +191,7 @@ const PaymentDialog = ({ open, onOpenChange, onPaymentComplete }: PaymentDialogP
     setIsRefreshing(false);
   };
 
+  
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
@@ -294,7 +294,7 @@ const PaymentDialog = ({ open, onOpenChange, onPaymentComplete }: PaymentDialogP
                   </div>
                 </TabsContent>
                 
-                <TabsContent value="bank" className="space-y-4 mt-4">
+                <TabsContent value="bank" className="flex flex-col space-y-4 mt-4">
                   <div className="border rounded-md p-4">
                     <h3 className="font-medium mb-3">Beneficiary Details</h3>
                     
@@ -346,92 +346,41 @@ const PaymentDialog = ({ open, onOpenChange, onPaymentComplete }: PaymentDialogP
                       
                       <div className="flex justify-between items-center">
                         <span className="text-sm text-gray-500">Amount:</span>
-                        <Badge variant="outline" className="font-medium">₹{amount}</Badge>
+                        <span className="font-medium">₹{amount}</span>
                       </div>
-                    </div>
-                    
-                    <div className="mt-4">
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="w-full flex items-center gap-2" 
-                        onClick={() => {
-                          const details = `Name: ${beneficiaryName}\nAccount: ${accountNumber}\nIFSC: ${ifscCode}\nAmount: ₹${amount}`;
-                          copyToClipboard(details, "All details");
-                        }}
-                      >
-                        <FileText size={16} />
-                        Copy All Details
-                      </Button>
                     </div>
                   </div>
                   
-                  <div className="text-sm text-center text-gray-500">
-                    After making the bank transfer, click "Verify Payment" below.
+                  <div className="text-sm text-gray-600 p-3 bg-amber-50 rounded-md">
+                    <p className="flex items-start gap-2">
+                      <AlertCircle size={16} className="text-amber-600 mt-0.5 flex-shrink-0" />
+                      <span>After payment, please note your transaction ID and click "Verify Payment" below.</span>
+                    </p>
                   </div>
                 </TabsContent>
               </Tabs>
               
-              {verificationMessage && (
-                <div className={`flex items-center gap-2 text-sm ${isPaid ? 'text-green-600' : 'text-amber-600'}`}>
-                  {isVerifying ? (
-                    <Loader2 size={14} className="animate-spin" />
-                  ) : (
-                    <AlertCircle size={14} />
-                  )}
-                  <p>{verificationMessage}</p>
-                </div>
-              )}
-              
-              <div className="flex gap-2 items-center justify-center mt-4 text-xs text-gray-500">
-                <Wallet size={14} />
-                <span>Dodo Pay, Google Pay, PhonePe, Paytm, BHIM & other UPI apps supported</span>
-              </div>
-            </>
-          ) : (
-            <div className="flex flex-col items-center justify-center py-8">
-              <div className="bg-green-100 rounded-full p-3 mb-4">
-                <Check className="text-green-600 w-8 h-8" />
-              </div>
-              <p className="text-xl font-medium text-green-600">Payment Successful!</p>
-              <p className="text-gray-500 text-sm mt-1">Thank you for your payment</p>
-            </div>
-          )}
-        </div>
-        
-        <DialogFooter className="flex flex-col sm:flex-row sm:justify-between gap-2">
-          {!isPaid ? (
-            <>
-              <Button 
-                variant="outline" 
-                onClick={() => onOpenChange(false)}
-                className="sm:order-1"
-              >
-                Cancel
-              </Button>
-              
-              {isVerifying ? (
+              <DialogFooter className="sm:justify-between w-full flex flex-col sm:flex-row gap-2 mt-2">
                 <Button 
-                  disabled
-                  className="gap-2 bg-blue-600 hover:bg-blue-700 sm:order-2"
+                  variant="outline" 
+                  onClick={() => onOpenChange(false)}
                 >
-                  <Loader2 size={16} className="animate-spin" />
-                  Verifying Payment
+                  Cancel
                 </Button>
-              ) : (
-                <div className="flex gap-2 sm:order-2">
-                  <Button
-                    variant="outline"
+                
+                <div className="flex gap-2">
+                  <Button 
                     onClick={handleRefreshPaymentStatus}
+                    variant="outline"
                     disabled={isRefreshing}
-                    className="gap-1"
+                    className="gap-2"
                   >
                     {isRefreshing ? (
                       <Loader2 size={16} className="animate-spin" />
                     ) : (
                       <RefreshCw size={16} />
                     )}
-                    Refresh
+                    Refresh Status
                   </Button>
                   
                   <Button 
@@ -442,20 +391,44 @@ const PaymentDialog = ({ open, onOpenChange, onPaymentComplete }: PaymentDialogP
                     Verify Payment
                   </Button>
                 </div>
+              </DialogFooter>
+              
+              {verificationMessage && (
+                <div className={`flex items-center gap-2 text-sm ${isPaid ? 'text-green-600' : 'text-amber-600'}`}>
+                  {isVerifying ? (
+                    <Loader2 size={14} className="animate-spin" />
+                  ) : isPaid ? (
+                    <Check size={14} />
+                  ) : (
+                    <AlertCircle size={14} />
+                  )}
+                  <p>{verificationMessage}</p>
+                </div>
               )}
             </>
           ) : (
-            <Button 
-              onClick={() => {
-                onPaymentComplete();
-                onOpenChange(false);
-              }}
-              className="w-full sm:w-auto"
-            >
-              Continue to App
-            </Button>
+            <div className="flex flex-col items-center justify-center py-8">
+              <div className="bg-green-100 rounded-full p-3 mb-4">
+                <Check className="text-green-600 w-8 h-8" />
+              </div>
+              <h3 className="text-xl font-medium text-green-600 mb-2">Payment Successful!</h3>
+              <p className="text-gray-600 text-center max-w-xs">
+                Thank you for your payment. You now have full access to all features.
+              </p>
+              
+              <Button 
+                onClick={() => {
+                  onPaymentComplete();
+                  onOpenChange(false);
+                }}
+                className="mt-6"
+                variant="default"
+              >
+                Continue to App
+              </Button>
+            </div>
           )}
-        </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );

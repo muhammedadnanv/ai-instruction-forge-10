@@ -1,100 +1,93 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import paymentService, { PaymentDetails, SubscriptionDetails } from '@/services/paymentService';
-import { useToast } from './use-toast';
+import { useToast } from '@/hooks/use-toast';
 
 export function usePayment() {
+  const [isLoading, setIsLoading] = useState(true);
   const [hasPaid, setHasPaid] = useState(false);
   const [isPro, setIsPro] = useState(false);
   const [paymentDetails, setPaymentDetails] = useState<PaymentDetails | null>(null);
   const [subscriptionDetails, setSubscriptionDetails] = useState<SubscriptionDetails | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
-  // Check payment status on initial load
+  // Load payment status on mount
   useEffect(() => {
-    const checkPaymentStatus = () => {
-      const userHasPaid = paymentService.hasUserPaid();
-      const userIsPro = paymentService.isProSubscriber();
-      const details = paymentService.getPaymentDetails();
-      const subDetails = paymentService.getSubscriptionDetails();
-      
-      setHasPaid(userHasPaid);
-      setIsPro(userIsPro);
-      setPaymentDetails(details);
-      setSubscriptionDetails(subDetails);
-      setIsLoading(false);
-    };
-    
-    checkPaymentStatus();
+    loadPaymentStatus();
   }, []);
 
-  // Verification function
-  const verifyPayment = async (paymentInitiated = true, isSubscription = false) => {
-    setIsLoading(true);
+  // Load payment status from service
+  const loadPaymentStatus = useCallback(() => {
     try {
-      const success = await paymentService.verifyPayment(paymentInitiated, isSubscription);
-      if (success) {
-        setHasPaid(true);
-        setPaymentDetails(paymentService.getPaymentDetails());
-        
-        if (isSubscription) {
-          setIsPro(true);
-          setSubscriptionDetails(paymentService.getSubscriptionDetails());
-          
-          toast({
-            title: "Subscription Activated",
-            description: "Thank you for subscribing to Pro. Full access enabled."
-          });
-        } else {
-          toast({
-            title: "Payment Verified",
-            description: "Thank you for your payment. Full access enabled."
-          });
-        }
-        
-        return true;
-      } else {
-        toast({
-          title: "Payment Verification Failed",
-          description: "We couldn't verify your payment. Please try again.",
-          variant: "destructive"
-        });
-        return false;
+      const hasUserPaid = paymentService.hasUserPaid();
+      const isProSubscriber = paymentService.isProSubscriber();
+      
+      setHasPaid(hasUserPaid);
+      setIsPro(isProSubscriber);
+      
+      if (hasUserPaid) {
+        const details = paymentService.getPaymentDetails();
+        setPaymentDetails(details);
       }
+      
+      if (isProSubscriber) {
+        const subDetails = paymentService.getSubscriptionDetails();
+        setSubscriptionDetails(subDetails);
+      }
+    } catch (error) {
+      console.error("Error loading payment status:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  // Verify payment (renamed to verifyPaymentStatus to avoid conflicts)
+  const verifyPaymentStatus = useCallback(async (paymentInitiated = false, isSubscription = false) => {
+    try {
+      const result = await paymentService.verifyPayment(paymentInitiated, isSubscription);
+      
+      // Reload payment status after verification
+      loadPaymentStatus();
+      
+      return result;
     } catch (error) {
       console.error("Payment verification error:", error);
       toast({
         title: "Verification Error",
-        description: "An error occurred while verifying your payment.",
-        variant: "destructive"
+        description: "Failed to verify payment status. Please try again.",
+        variant: "destructive",
       });
       return false;
-    } finally {
-      setIsLoading(false);
     }
-  };
+  }, [loadPaymentStatus, toast]);
 
-  // Reset payment (mainly for testing)
-  const resetPayment = () => {
-    paymentService.clearPaymentData();
-    setHasPaid(false);
-    setIsPro(false);
-    setPaymentDetails(null);
-    setSubscriptionDetails(null);
-    toast({
-      title: "Payment Reset",
-      description: "Payment status has been reset for testing."
-    });
-  };
+  // Reset payment data (for testing)
+  const resetPayment = useCallback(() => {
+    try {
+      paymentService.clearPaymentData();
+      loadPaymentStatus();
+      
+      toast({
+        title: "Payment Data Reset",
+        description: "All payment data has been cleared for testing.",
+      });
+    } catch (error) {
+      console.error("Error resetting payment data:", error);
+      toast({
+        title: "Reset Error",
+        description: "Failed to reset payment data. Please try again.",
+        variant: "destructive",
+      });
+    }
+  }, [loadPaymentStatus, toast]);
 
   return {
+    isLoading,
     hasPaid,
     isPro,
     paymentDetails,
     subscriptionDetails,
-    isLoading,
-    verifyPayment,
-    resetPayment
+    verifyPaymentStatus, // Renamed function
+    resetPayment,
   };
 }

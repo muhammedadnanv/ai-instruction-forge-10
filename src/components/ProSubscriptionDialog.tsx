@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -23,7 +22,7 @@ const ProSubscriptionDialog = ({ open, onOpenChange, onSubscriptionComplete }: P
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isProcessingDodo, setIsProcessingDodo] = useState(false);
   const { toast } = useToast();
-  const { isPro, verifyPayment } = usePayment();
+  const { isPro, verifyPaymentStatus } = usePayment(); // Using the renamed function
   
   const { amount, currency, period } = PRO_SUBSCRIPTION_DETAILS;
 
@@ -78,7 +77,7 @@ const ProSubscriptionDialog = ({ open, onOpenChange, onSubscriptionComplete }: P
     setVerificationMessage("Verifying your subscription...");
     
     try {
-      const success = await verifyPayment(true, true);
+      const success = await verifyPaymentStatus(true, true);
       
       if (success) {
         setIsSubscribed(true);
@@ -102,7 +101,7 @@ const ProSubscriptionDialog = ({ open, onOpenChange, onSubscriptionComplete }: P
     setIsRefreshing(true);
     
     try {
-      const success = await verifyPayment(true, true);
+      const success = await verifyPaymentStatus(true, true);
       
       if (success) {
         setIsSubscribed(true);
