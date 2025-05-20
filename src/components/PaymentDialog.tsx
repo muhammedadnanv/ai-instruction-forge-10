@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -95,8 +96,8 @@ const PaymentDialog = ({ open, onOpenChange, onPaymentComplete }: PaymentDialogP
     }
   };
 
-  // Simulated payment verification
-  const verifyPayment = async () => {
+  // Simulated payment verification - renamed to handleVerifyPayment to avoid conflict
+  const handleVerifyPayment = async () => {
     setIsVerifying(true);
     setVerificationMessage("Verifying your payment...");
     
@@ -434,7 +435,7 @@ const PaymentDialog = ({ open, onOpenChange, onPaymentComplete }: PaymentDialogP
                   </Button>
                   
                   <Button 
-                    onClick={verifyPayment}
+                    onClick={handleVerifyPayment}
                     className="gap-2 bg-green-600 hover:bg-green-700"
                   >
                     <CreditCard size={16} />
