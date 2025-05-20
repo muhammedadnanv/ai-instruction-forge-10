@@ -19,7 +19,10 @@ const STORAGE_KEYS = {
   PAYMENT_ID: 'payment_id',
   HAS_PAID: 'has_paid',
   PAYMENT_AMOUNT: 'payment_amount',
-  PAYMENT_CURRENCY: 'payment_currency'
+  PAYMENT_CURRENCY: 'payment_currency',
+  IS_PRO_SUBSCRIBER: 'is_pro_subscriber',
+  SUBSCRIPTION_START: 'subscription_start',
+  SUBSCRIPTION_ID: 'subscription_id'
 };
 
 export interface PaymentDetails {
@@ -30,11 +33,29 @@ export interface PaymentDetails {
   currency: string;
 }
 
+export interface SubscriptionDetails {
+  id: string;
+  startDate: string;
+  amount: string;
+  currency: string;
+  isActive: boolean;
+}
+
 // UPI payment details
 export const UPI_PAYMENT_DETAILS = {
   upiId: 'adnanmuhammad4393@okicici',
   amount: '199',
   currency: 'INR',
+  beneficiaryName: 'Muhammed Adnan VV',
+  accountNumber: '19020100094298',
+  ifscCode: 'FDRL0001902'
+};
+
+// Subscription details
+export const PRO_SUBSCRIPTION_DETAILS = {
+  amount: '599',
+  currency: 'INR',
+  period: 'monthly',
   beneficiaryName: 'Muhammed Adnan VV',
   accountNumber: '19020100094298',
   ifscCode: 'FDRL0001902'
@@ -52,6 +73,13 @@ class PaymentService {
    */
   hasUserPaid(): boolean {
     return localStorage.getItem(STORAGE_KEYS.HAS_PAID) === 'true';
+  }
+
+  /**
+   * Check if user is a pro subscriber
+   */
+  isProSubscriber(): boolean {
+    return localStorage.getItem(STORAGE_KEYS.IS_PRO_SUBSCRIBER) === 'true';
   }
 
   /**
@@ -78,18 +106,40 @@ class PaymentService {
   }
 
   /**
+   * Get subscription details
+   */
+  getSubscriptionDetails(): SubscriptionDetails | null {
+    const isSubscriber = this.isProSubscriber();
+    const startDate = localStorage.getItem(STORAGE_KEYS.SUBSCRIPTION_START);
+    const id = localStorage.getItem(STORAGE_KEYS.SUBSCRIPTION_ID);
+    
+    if (!isSubscriber || !startDate || !id) {
+      return null;
+    }
+    
+    return {
+      id,
+      startDate,
+      amount: PRO_SUBSCRIPTION_DETAILS.amount,
+      currency: PRO_SUBSCRIPTION_DETAILS.currency,
+      isActive: true
+    };
+  }
+
+  /**
    * Initialize Dodo payment
    * This would typically make an API call to Dodo to start a payment session
    */
-  initiateDodoPayment(): Promise<{sessionId: string}> {
+  initiateDodoPayment(isSubscription = false): Promise<{sessionId: string}> {
     // In a real implementation, this would make an API call to Dodo
     console.log('Initiating Dodo payment with API Key:', DODO_API_KEY);
     
     return new Promise((resolve) => {
       // Simulate API call
       setTimeout(() => {
+        const paymentType = isSubscription ? 'subscription' : 'one-time';
         resolve({
-          sessionId: `dodo_session_${Date.now()}`
+          sessionId: `dodo_${paymentType}_${Date.now()}`
         });
       }, 1000);
     });
@@ -112,10 +162,26 @@ class PaymentService {
   }
 
   /**
+   * Record a subscription
+   */
+  recordSubscription(subscriptionId: string = `dodo_sub_${Date.now()}`): void {
+    const startDate = new Date().toISOString();
+    
+    localStorage.setItem(STORAGE_KEYS.IS_PRO_SUBSCRIBER, 'true');
+    localStorage.setItem(STORAGE_KEYS.SUBSCRIPTION_START, startDate);
+    localStorage.setItem(STORAGE_KEYS.SUBSCRIPTION_ID, subscriptionId);
+    
+    // Also mark as paid for basic access
+    if (!this.hasUserPaid()) {
+      this.recordPayment(`dodo_sub_payment_${Date.now()}`);
+    }
+  }
+
+  /**
    * Verify a payment with Dodo
    * In a real implementation, this would call Dodo's API to verify the payment
    */
-  verifyPayment(paymentInitiated: boolean): Promise<boolean> {
+  verifyPayment(paymentInitiated: boolean, isSubscription = false): Promise<boolean> {
     console.log('Verifying payment with Dodo using API Key:', DODO_API_KEY);
     
     return new Promise((resolve) => {
@@ -125,7 +191,11 @@ class PaymentService {
         const randomSuccess = paymentInitiated || Math.random() > 0.3;
         
         if (randomSuccess) {
-          this.recordPayment();
+          if (isSubscription) {
+            this.recordSubscription();
+          } else {
+            this.recordPayment();
+          }
           resolve(true);
         } else {
           resolve(false);

@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Heart, Zap, Code, Lock, Server, ArrowUpRight, Lightbulb, FileCode } from "lucide-react";
+import { Heart, Zap, Code, Lock, Server, ArrowUpRight, Lightbulb, FileCode, Calendar } from "lucide-react";
 import SaveInstructionDialog from "@/components/SaveInstructionDialog";
 import SystemInstructionDialog from "@/components/SystemInstructionDialog";
 import SavedInstructions from "@/components/SavedInstructions";
@@ -23,6 +23,8 @@ import Header from "@/components/Header";
 import { useIsMobile } from "@/hooks/use-mobile";
 import paymentService from "@/services/paymentService";
 import geminiService from "@/services/geminiService";
+import ProSubscriptionDialog from "@/components/ProSubscriptionDialog";
+import { usePayment } from "@/hooks/use-payment";
 
 export default function Index() {
   const [framework, setFramework] = useState("ACT");
@@ -31,8 +33,10 @@ export default function Index() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [apiKeyDialogOpen, setApiKeyDialogOpen] = useState(false);
+  const [proSubscriptionDialogOpen, setProSubscriptionDialogOpen] = useState(false);
   const { toast } = useToast();
   const isMobile = useIsMobile();
+  const { isPro } = usePayment();
 
   // Check authentication status on component mount
   useEffect(() => {
@@ -71,6 +75,14 @@ export default function Index() {
   const handlePaymentComplete = () => {
     setPaymentDialogOpen(false);
     setIsAuthenticated(true);
+  };
+  
+  const handleProSubscriptionComplete = () => {
+    setProSubscriptionDialogOpen(false);
+    toast({
+      title: "Pro Subscription Active",
+      description: "Welcome to InstructAI Pro! You now have access to all premium features."
+    });
   };
 
   return (
@@ -131,9 +143,16 @@ export default function Index() {
                 <Heart size={16} className="text-red-500" />
                 <span className={isMobile ? "sr-only" : ""}>Favorites</span>
               </Button>
-              <Button className="gap-2 text-sm bg-gradient-to-r from-blue-600 to-indigo-600" size={isMobile ? "sm" : "default"}>
-                <Zap size={16} />
-                <span className={isMobile ? "sr-only" : ""}>Upgrade Pro</span>
+              <Button 
+                className="gap-2 text-sm bg-gradient-to-r from-blue-600 to-indigo-600" 
+                size={isMobile ? "sm" : "default"}
+                onClick={() => setProSubscriptionDialogOpen(true)}
+                disabled={isPro}
+              >
+                <Calendar size={16} />
+                <span className={isMobile ? "sr-only" : ""}>
+                  {isPro ? "Pro Active" : "Upgrade Pro"}
+                </span>
               </Button>
             </div>
           </motion.div>

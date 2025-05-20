@@ -1,11 +1,13 @@
 
 import { useState, useEffect } from 'react';
-import paymentService, { PaymentDetails } from '@/services/paymentService';
+import paymentService, { PaymentDetails, SubscriptionDetails } from '@/services/paymentService';
 import { useToast } from './use-toast';
 
 export function usePayment() {
   const [hasPaid, setHasPaid] = useState(false);
+  const [isPro, setIsPro] = useState(false);
   const [paymentDetails, setPaymentDetails] = useState<PaymentDetails | null>(null);
+  const [subscriptionDetails, setSubscriptionDetails] = useState<SubscriptionDetails | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
@@ -13,10 +15,14 @@ export function usePayment() {
   useEffect(() => {
     const checkPaymentStatus = () => {
       const userHasPaid = paymentService.hasUserPaid();
+      const userIsPro = paymentService.isProSubscriber();
       const details = paymentService.getPaymentDetails();
+      const subDetails = paymentService.getSubscriptionDetails();
       
       setHasPaid(userHasPaid);
+      setIsPro(userIsPro);
       setPaymentDetails(details);
+      setSubscriptionDetails(subDetails);
       setIsLoading(false);
     };
     
@@ -24,18 +30,28 @@ export function usePayment() {
   }, []);
 
   // Verification function
-  const verifyPayment = async (paymentInitiated = false) => {
+  const verifyPayment = async (paymentInitiated = false, isSubscription = false) => {
     setIsLoading(true);
     try {
-      const success = await paymentService.verifyPayment(paymentInitiated);
+      const success = await paymentService.verifyPayment(paymentInitiated, isSubscription);
       if (success) {
         setHasPaid(true);
         setPaymentDetails(paymentService.getPaymentDetails());
         
-        toast({
-          title: "Payment Verified",
-          description: "Thank you for your payment. Full access enabled."
-        });
+        if (isSubscription) {
+          setIsPro(true);
+          setSubscriptionDetails(paymentService.getSubscriptionDetails());
+          
+          toast({
+            title: "Subscription Activated",
+            description: "Thank you for subscribing to Pro. Full access enabled."
+          });
+        } else {
+          toast({
+            title: "Payment Verified",
+            description: "Thank you for your payment. Full access enabled."
+          });
+        }
         
         return true;
       } else {
@@ -63,7 +79,9 @@ export function usePayment() {
   const resetPayment = () => {
     paymentService.clearPaymentData();
     setHasPaid(false);
+    setIsPro(false);
     setPaymentDetails(null);
+    setSubscriptionDetails(null);
     toast({
       title: "Payment Reset",
       description: "Payment status has been reset for testing."
@@ -72,7 +90,9 @@ export function usePayment() {
 
   return {
     hasPaid,
+    isPro,
     paymentDetails,
+    subscriptionDetails,
     isLoading,
     verifyPayment,
     resetPayment
