@@ -28,7 +28,7 @@ const ApiKeyDialog = ({
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   const { toast } = useToast();
   const [hasStoredKey, setHasStoredKey] = useState(false);
-  const { hasPaid, verifyPayment } = usePayment();
+  const { hasPaid } = usePayment();
 
   // Handle controlled/uncontrolled state
   const isControlled = controlledOpen !== undefined;
