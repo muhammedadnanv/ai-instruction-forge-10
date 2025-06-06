@@ -1,11 +1,10 @@
-
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Heart, Zap, Code, Lock, Server, ArrowUpRight, Lightbulb, FileCode, Calendar } from "lucide-react";
+import { Heart, Zap, Code, Lock, Server, ArrowUpRight, Lightbulb, FileCode } from "lucide-react";
 import SaveInstructionDialog from "@/components/SaveInstructionDialog";
 import SystemInstructionDialog from "@/components/SystemInstructionDialog";
 import SavedInstructions from "@/components/SavedInstructions";
@@ -19,6 +18,7 @@ import PromptOpsSettings from "@/components/PromptOpsSettings";
 import PromptEngineeringGuide from "@/components/PromptEngineeringGuide";
 import PromptStrategies from "@/components/PromptStrategies";
 import PromptCollection from "@/components/PromptCollection";
+import DonatingWidget from "@/components/DonatingWidget";
 import { useToast } from "@/hooks/use-toast";
 import Header from "@/components/Header";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -155,17 +155,6 @@ export default function Index() {
                 <Heart size={16} className="text-red-500" />
                 <span className={isMobile ? "sr-only" : ""}>Favorites</span>
               </Button>
-              <Button 
-                className="gap-2 text-sm bg-gradient-to-r from-blue-600 to-indigo-600" 
-                size={isMobile ? "sm" : "default"}
-                onClick={() => setProSubscriptionDialogOpen(true)}
-                disabled={isPro}
-              >
-                <Calendar size={16} />
-                <span className={isMobile ? "sr-only" : ""}>
-                  {isPro ? "Pro Active" : "Upgrade Pro"}
-                </span>
-              </Button>
             </div>
           </motion.div>
         </header>
@@ -280,6 +269,22 @@ export default function Index() {
           </div>
         </footer>
       </div>
+      
+      {/* Add the DonatingWidget */}
+      <DonatingWidget
+        upiId="adnanmuhammad4393@okicici"
+        name="Muhammed Adnan"
+        amount={399}
+        position="bottom-right"
+        primaryColor="#8B5CF6"
+        buttonText="Pyam"
+        theme="modern"
+        icon="gift"
+        showPulse={true}
+        showGradient={true}
+        title="Pay to me "
+        description="Scan this QR code to make a Pyam"
+      />
     </div>
   );
 }
