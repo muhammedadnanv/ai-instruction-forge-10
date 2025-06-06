@@ -5,14 +5,21 @@ import { useLocation } from "react-router-dom";
 import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
+import DonatingWidget from "./DonatingWidget";
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [showDonatingWidget, setShowDonatingWidget] = useState(false);
   const location = useLocation();
   const isMobile = useIsMobile();
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
+  };
+
+  const handlePricingClick = () => {
+    setShowDonatingWidget(true);
+    setIsMenuOpen(false);
   };
 
   return (
@@ -55,12 +62,12 @@ export default function Header() {
           >
             Documentation
           </Link>
-          <Link
-            to="#"
+          <button
+            onClick={handlePricingClick}
             className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
           >
             Pricing
-          </Link>
+          </button>
         </nav>
 
         {/* Mobile navigation */}
@@ -92,17 +99,40 @@ export default function Header() {
               >
                 Documentation
               </Link>
-              <Link
-                to="#"
-                className="text-lg font-medium text-muted-foreground transition-colors hover:text-primary"
-                onClick={() => setIsMenuOpen(false)}
+              <button
+                onClick={handlePricingClick}
+                className="text-lg font-medium text-muted-foreground transition-colors hover:text-primary text-left"
               >
                 Pricing
-              </Link>
+              </button>
             </nav>
           </div>
         )}
       </div>
+
+      {/* DonatingWidget Dialog */}
+      {showDonatingWidget && (
+        <div className="fixed inset-0 z-50">
+          <DonatingWidget
+            upiId="adnanmuhammad4393@okicici"
+            name="Muhammed Adnan"
+            amount={399}
+            position="bottom-right"
+            primaryColor="#8B5CF6"
+            buttonText="Pyam"
+            theme="modern"
+            icon="gift"
+            showPulse={true}
+            showGradient={true}
+            title="Pay to me "
+            description="Scan this QR code to make a Pyam"
+          />
+          <div 
+            className="fixed inset-0 bg-black/50" 
+            onClick={() => setShowDonatingWidget(false)}
+          />
+        </div>
+      )}
     </header>
   );
 }
