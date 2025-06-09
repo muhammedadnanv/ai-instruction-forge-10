@@ -1,3 +1,4 @@
+
 /**
  * Payment Service
  * Handles payment-related functionality and verification
@@ -43,12 +44,12 @@ export interface SubscriptionDetails {
   isActive: boolean;
 }
 
-// UPI payment details
+// UPI payment details - Updated with new details
 export const UPI_PAYMENT_DETAILS = {
   upiId: 'adnanmuhammad4393@okicici',
-  amount: '199',
+  amount: '99.99',
   currency: 'INR',
-  beneficiaryName: 'Muhammed Adnan VV',
+  beneficiaryName: 'Muhammed Adnan',
   accountNumber: '19020100094298',
   ifscCode: 'FDRL0001902'
 };
@@ -58,7 +59,7 @@ export const PRO_SUBSCRIPTION_DETAILS = {
   amount: '599',
   currency: 'INR',
   period: 'monthly',
-  beneficiaryName: 'Muhammed Adnan VV',
+  beneficiaryName: 'Muhammed Adnan',
   accountNumber: '19020100094298',
   ifscCode: 'FDRL0001902'
 };
@@ -161,9 +162,9 @@ class PaymentService {
   }
 
   /**
-   * Record a payment
+   * Record a payment and return access code
    */
-  recordPayment(paymentId: string = `dodo_${Date.now()}`, status: string = PAYMENT_STATUS.COMPLETED): void {
+  recordPayment(paymentId: string = `upi_${Date.now()}`, status: string = PAYMENT_STATUS.COMPLETED): string | null {
     const date = new Date().toISOString();
     const amount = UPI_PAYMENT_DETAILS.amount;
     const currency = UPI_PAYMENT_DETAILS.currency;
@@ -174,12 +175,16 @@ class PaymentService {
     localStorage.setItem(STORAGE_KEYS.HAS_PAID, 'true');
     localStorage.setItem(STORAGE_KEYS.PAYMENT_AMOUNT, amount);
     localStorage.setItem(STORAGE_KEYS.PAYMENT_CURRENCY, currency);
+    
+    // Generate and return access code
+    const accessCode = accessCodeService.storeAccessCode(paymentId, 'user@example.com');
+    return accessCode;
   }
 
   /**
    * Record a subscription
    */
-  recordSubscription(subscriptionId: string = `dodo_sub_${Date.now()}`): void {
+  recordSubscription(subscriptionId: string = `upi_sub_${Date.now()}`): void {
     const startDate = new Date().toISOString();
     
     localStorage.setItem(STORAGE_KEYS.IS_PRO_SUBSCRIBER, 'true');
@@ -188,7 +193,7 @@ class PaymentService {
     
     // Also mark as paid for basic access
     if (!this.hasUserPaid()) {
-      this.recordPayment(`dodo_sub_payment_${Date.now()}`);
+      this.recordPayment(`upi_sub_payment_${Date.now()}`);
     }
   }
 
