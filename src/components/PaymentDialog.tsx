@@ -3,12 +3,9 @@ import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Check, CreditCard, IndianRupee, Wallet, AlertCircle, Loader2, RefreshCw, Copy, FileText } from "lucide-react";
+import { Check, CreditCard, IndianRupee, Wallet, AlertCircle, Loader2, RefreshCw } from "lucide-react";
 import paymentService, { PAYMENT_STATUS, UPI_PAYMENT_DETAILS } from "@/services/paymentService";
 import { usePayment } from "@/hooks/use-payment";
-import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
 
 interface PaymentDialogProps {
   open: boolean;
@@ -22,12 +19,10 @@ const PaymentDialog = ({ open, onOpenChange, onPaymentComplete }: PaymentDialogP
   const [paymentInitiated, setPaymentInitiated] = useState(false);
   const [verificationMessage, setVerificationMessage] = useState("");
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [paymentTab, setPaymentTab] = useState("upi");
-  const [isProcessingDodo, setIsProcessingDodo] = useState(false);
   const { toast } = useToast();
   const { verifyPaymentStatus } = usePayment();
   
-  const { upiId, amount, currency, beneficiaryName, accountNumber, ifscCode } = UPI_PAYMENT_DETAILS;
+  const { upiId, amount, currency, beneficiaryName } = UPI_PAYMENT_DETAILS;
 
   // Generate UPI QR code link
   const upiQrLink = `upi://pay?pa=${upiId}&am=${amount}&cu=${currency}&tn=InstructAI Payment`;
@@ -44,59 +39,6 @@ const PaymentDialog = ({ open, onOpenChange, onPaymentComplete }: PaymentDialogP
       }
     }
   }, [open]);
-
-  // Copy text to clipboard helper
-  const copyToClipboard = (text: string, label: string) => {
-    navigator.clipboard.writeText(text).then(() => {
-      toast({
-        title: "Copied!",
-        description: `${label} copied to clipboard`
-      });
-    }).catch(err => {
-      toast({
-        title: "Failed to copy",
-        description: "Please try copying manually",
-        variant: "destructive"
-      });
-      console.error("Failed to copy:", err);
-    });
-  };
-
-  // Process payment with Dodo
-  const processDodoPayment = async () => {
-    setIsProcessingDodo(true);
-    
-    try {
-      // Call the Dodo payment initiation
-      const { sessionId, accessCode } = await paymentService.initiateDodoPayment();
-      
-      if (accessCode) {
-        toast({
-          title: "Payment Successful",
-          description: "Your payment has been processed. Transaction ID: " + sessionId
-        });
-        
-        setIsPaid(true);
-        
-        // Notify the parent component with the access code
-        setTimeout(() => {
-          onPaymentComplete(accessCode);
-          onOpenChange(false);
-        }, 1000);
-      }
-      
-    } catch (error) {
-      console.error("Dodo payment error:", error);
-      setIsProcessingDodo(false);
-      toast({
-        title: "Payment Error",
-        description: "Failed to process payment. Please try again.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsProcessingDodo(false);
-    }
-  };
 
   // Simulated payment verification
   const handleVerifyPayment = async () => {
@@ -217,7 +159,7 @@ const PaymentDialog = ({ open, onOpenChange, onPaymentComplete }: PaymentDialogP
             <>
               {/* UPI Gateway Widget */}
               <div className="w-full max-w-sm mx-auto border border-gray-200 rounded-lg p-5 shadow-sm bg-white upi-gateway-container">
-                <style jsx>{`
+                <style>{`
                   @media (max-width: 480px) {
                     .upi-gateway-container {
                       max-width: 100% !important;
@@ -293,59 +235,12 @@ const PaymentDialog = ({ open, onOpenChange, onPaymentComplete }: PaymentDialogP
                 </p>
               </div>
               
-              <Tabs value={paymentTab} onValueChange={setPaymentTab} className="w-full">
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="upi">UPI Payment</TabsTrigger>
-                  <TabsTrigger value="dodo">Dodo Pay</TabsTrigger>
-                </TabsList>
-                
-                <TabsContent value="upi" className="mt-4">
-                  {paymentInitiated && (
-                    <div className="mt-3 text-sm text-center text-green-600 bg-green-50 p-2 rounded">
-                      <Check size={14} className="inline mr-1" />
-                      Payment initiated. Click "Verify Payment" below after completing.
-                    </div>
-                  )}
-                </TabsContent>
-                
-                <TabsContent value="dodo" className="flex flex-col items-center space-y-4 mt-4">
-                  <div className="bg-white p-5 rounded-lg border-2 border-blue-500 shadow-md w-full">
-                    <div className="text-center mb-4">
-                      <h3 className="text-lg font-semibold mb-1">Pay with Dodo</h3>
-                      <p className="text-sm text-gray-600">Fast and secure payment gateway</p>
-                    </div>
-                    
-                    <div className="bg-blue-50 p-3 rounded-md mb-4">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm">Amount:</span>
-                        <Badge variant="outline" className="font-medium bg-blue-100">₹{amount}</Badge>
-                      </div>
-                      <div className="flex justify-between items-center mt-2">
-                        <span className="text-sm">Access:</span>
-                        <Badge variant="outline" className="font-medium bg-green-100 text-green-600">Lifetime</Badge>
-                      </div>
-                    </div>
-                    
-                    <Button 
-                      onClick={processDodoPayment} 
-                      disabled={isProcessingDodo}
-                      className="w-full bg-blue-600 hover:bg-blue-700"
-                    >
-                      {isProcessingDodo ? (
-                        <>
-                          <Loader2 size={16} className="mr-2 animate-spin" />
-                          Processing...
-                        </>
-                      ) : (
-                        <>
-                          <CreditCard size={16} className="mr-2" />
-                          Pay ₹{amount} & Get Access Code
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                </TabsContent>
-              </Tabs>
+              {paymentInitiated && (
+                <div className="mt-3 text-sm text-center text-green-600 bg-green-50 p-2 rounded">
+                  <Check size={14} className="inline mr-1" />
+                  Payment initiated. Click "Verify Payment" below after completing.
+                </div>
+              )}
               
               <DialogFooter className="sm:justify-between w-full flex flex-col sm:flex-row gap-2 mt-2">
                 <Button 
