@@ -230,10 +230,7 @@ const PaymentDialog = ({
                 </Button>
                 
                 <div className="flex gap-2">
-                  <Button onClick={handleRefreshPaymentStatus} variant="outline" disabled={isRefreshing} className="gap-2">
-                    {isRefreshing ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
-                    Refresh Status
-                  </Button>
+                  
                   
                   
                 </div>
