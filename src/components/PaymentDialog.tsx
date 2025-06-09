@@ -7,12 +7,11 @@ import paymentService, { PAYMENT_STATUS, UPI_PAYMENT_DETAILS } from "@/services/
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { usePayment } from "@/hooks/use-payment";
 
 interface PaymentDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onPaymentComplete: () => void;
+  onPaymentComplete: (accessCode: string) => void;
 }
 
 const PaymentDialog = ({ open, onOpenChange, onPaymentComplete }: PaymentDialogProps) => {
@@ -24,7 +23,6 @@ const PaymentDialog = ({ open, onOpenChange, onPaymentComplete }: PaymentDialogP
   const [paymentTab, setPaymentTab] = useState("dodo");
   const [isProcessingDodo, setIsProcessingDodo] = useState(false);
   const { toast } = useToast();
-  const { verifyPaymentStatus } = usePayment(); // Renamed to avoid conflicts
   
   const { upiId, amount, currency, beneficiaryName, accountNumber, ifscCode } = UPI_PAYMENT_DETAILS;
 
@@ -67,20 +65,22 @@ const PaymentDialog = ({ open, onOpenChange, onPaymentComplete }: PaymentDialogP
     
     try {
       // Call the Dodo payment initiation
-      const { sessionId } = await paymentService.initiateDodoPayment();
+      const { sessionId, accessCode } = await paymentService.initiateDodoPayment();
       
-      toast({
-        title: "Payment Successful",
-        description: "Your payment has been processed. Transaction ID: " + sessionId
-      });
-      
-      setIsPaid(true);
-      
-      // Notify the parent component
-      setTimeout(() => {
-        onPaymentComplete();
-        onOpenChange(false);
-      }, 2000);
+      if (accessCode) {
+        toast({
+          title: "Payment Successful",
+          description: "Your payment has been processed. Transaction ID: " + sessionId
+        });
+        
+        setIsPaid(true);
+        
+        // Notify the parent component with the access code
+        setTimeout(() => {
+          onPaymentComplete(accessCode);
+          onOpenChange(false);
+        }, 1000);
+      }
       
     } catch (error) {
       console.error("Dodo payment error:", error);
@@ -113,9 +113,9 @@ const PaymentDialog = ({ open, onOpenChange, onPaymentComplete }: PaymentDialogP
         });
         
         setTimeout(() => {
-          onPaymentComplete();
+          onPaymentComplete("GENERATING...");
           onOpenChange(false);
-        }, 2000);
+        }, 1000);
       } else {
         setIsVerifying(false);
         setVerificationMessage("We couldn't verify your payment. If you've already paid, please try again in a few moments.");
@@ -171,7 +171,7 @@ const PaymentDialog = ({ open, onOpenChange, onPaymentComplete }: PaymentDialogP
         });
         
         setTimeout(() => {
-          onPaymentComplete();
+          onPaymentComplete("GENERATING...");
           onOpenChange(false);
         }, 1000);
       } else {
@@ -198,10 +198,10 @@ const PaymentDialog = ({ open, onOpenChange, onPaymentComplete }: PaymentDialogP
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <IndianRupee className="text-green-500" size={20} />
-            Payment Required
+            Purchase Platform Access
           </DialogTitle>
           <DialogDescription>
-            A one-time payment of ₹{amount} is required to use this application.
+            A one-time payment of ₹{amount} grants you lifetime access to InstructAI with a unique access code.
           </DialogDescription>
         </DialogHeader>
         
@@ -227,6 +227,10 @@ const PaymentDialog = ({ open, onOpenChange, onPaymentComplete }: PaymentDialogP
                         <span className="text-sm">Amount:</span>
                         <Badge variant="outline" className="font-medium bg-blue-100">₹{amount}</Badge>
                       </div>
+                      <div className="flex justify-between items-center mt-2">
+                        <span className="text-sm">Access:</span>
+                        <Badge variant="outline" className="font-medium bg-green-100 text-green-600">Lifetime</Badge>
+                      </div>
                     </div>
                     
                     <Button 
@@ -242,7 +246,7 @@ const PaymentDialog = ({ open, onOpenChange, onPaymentComplete }: PaymentDialogP
                       ) : (
                         <>
                           <CreditCard size={16} className="mr-2" />
-                          Pay Now with Dodo
+                          Pay ₹{amount} & Get Access Code
                         </>
                       )}
                     </Button>
@@ -413,18 +417,18 @@ const PaymentDialog = ({ open, onOpenChange, onPaymentComplete }: PaymentDialogP
               </div>
               <h3 className="text-xl font-medium text-green-600 mb-2">Payment Successful!</h3>
               <p className="text-gray-600 text-center max-w-xs">
-                Thank you for your payment. You now have full access to all features.
+                Thank you for your payment. Your access code will be generated shortly.
               </p>
               
               <Button 
                 onClick={() => {
-                  onPaymentComplete();
+                  onPaymentComplete("GENERATING...");
                   onOpenChange(false);
                 }}
                 className="mt-6"
                 variant="default"
               >
-                Continue to App
+                Continue to Get Access Code
               </Button>
             </div>
           )}

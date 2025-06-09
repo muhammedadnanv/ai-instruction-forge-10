@@ -1,8 +1,9 @@
-
 /**
  * Payment Service
  * Handles payment-related functionality and verification
  */
+
+import accessCodeService from './accessCodeService';
 
 // Payment status constants
 export const PAYMENT_STATUS = {
@@ -31,6 +32,7 @@ export interface PaymentDetails {
   id: string;
   amount: string;
   currency: string;
+  accessCode?: string;
 }
 
 export interface SubscriptionDetails {
@@ -69,17 +71,17 @@ const DODO_API_KEY = 'VjyJF4pywuQ1M5du.CR8UuaFRFuyIA36fqnQkETWXtYxeEP_2aziowRWwA
  */
 class PaymentService {
   /**
-   * Check if user has paid
+   * Check if user has paid (now checks access code validity)
    */
   hasUserPaid(): boolean {
-    return localStorage.getItem(STORAGE_KEYS.HAS_PAID) === 'true';
+    return accessCodeService.hasValidAccess();
   }
 
   /**
    * Check if user is a pro subscriber
    */
   isProSubscriber(): boolean {
-    return localStorage.getItem(STORAGE_KEYS.IS_PRO_SUBSCRIBER) === 'true';
+    return localStorage.getItem(STORAGE_KEYS.IS_PRO_SUBSCRIBER) === 'true' && this.hasUserPaid();
   }
 
   /**
@@ -91,6 +93,7 @@ class PaymentService {
     const id = localStorage.getItem(STORAGE_KEYS.PAYMENT_ID);
     const amount = localStorage.getItem(STORAGE_KEYS.PAYMENT_AMOUNT) || UPI_PAYMENT_DETAILS.amount;
     const currency = localStorage.getItem(STORAGE_KEYS.PAYMENT_CURRENCY) || UPI_PAYMENT_DETAILS.currency;
+    const accessCode = accessCodeService.getUserAccessCode();
 
     if (!status || !date) {
       return null;
@@ -101,7 +104,8 @@ class PaymentService {
       date,
       id: id || 'unknown',
       amount,
-      currency
+      currency,
+      accessCode: accessCode || undefined
     };
   }
 
@@ -127,28 +131,30 @@ class PaymentService {
   }
 
   /**
-   * Initialize Dodo payment
-   * This would typically make an API call to Dodo to start a payment session
+   * Initialize Dodo payment with access code generation
    */
-  initiateDodoPayment(isSubscription = false): Promise<{sessionId: string}> {
-    // In a real implementation, this would make an API call to Dodo
+  initiateDodoPayment(isSubscription = false): Promise<{sessionId: string, accessCode?: string}> {
     console.log('Initiating Dodo payment with API Key:', DODO_API_KEY);
     
     return new Promise((resolve) => {
-      // Simulate API call
       setTimeout(() => {
         const paymentType = isSubscription ? 'subscription' : 'one-time';
         const sessionId = `dodo_${paymentType}_${Date.now()}`;
         
-        // Automatically record payment for demo purposes
+        let accessCode: string | undefined;
+        
+        // Generate access code after successful payment
         if (isSubscription) {
           this.recordSubscription(sessionId);
+          accessCode = accessCodeService.storeAccessCode(sessionId, 'user@example.com');
         } else {
           this.recordPayment(sessionId);
+          accessCode = accessCodeService.storeAccessCode(sessionId, 'user@example.com');
         }
         
         resolve({
-          sessionId
+          sessionId,
+          accessCode
         });
       }, 1000);
     });
@@ -217,6 +223,8 @@ class PaymentService {
     Object.values(STORAGE_KEYS).forEach(key => {
       localStorage.removeItem(key);
     });
+    // Also clear access codes
+    accessCodeService.clearAllData();
   }
 }
 

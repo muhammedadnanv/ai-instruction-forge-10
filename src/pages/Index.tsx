@@ -1,19 +1,19 @@
-
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Heart, Zap, Code, Lock, Server, ArrowUpRight, Lightbulb, FileCode } from "lucide-react";
+import { Heart, Zap, Code, Lock, Server, ArrowUpRight, Lightbulb, FileCode, KeyRound, LogOut } from "lucide-react";
 import SaveInstructionDialog from "@/components/SaveInstructionDialog";
 import SystemInstructionDialog from "@/components/SystemInstructionDialog";
 import SavedInstructions from "@/components/SavedInstructions";
 import FrameworkSelector from "@/components/FrameworkSelector";
 import InstructionBuilder from "@/components/InstructionBuilder";
 import OutputPreview from "@/components/OutputPreview";
-import ApiKeyDialog from "@/components/ApiKeyDialog";
 import PaymentDialog from "@/components/PaymentDialog";
+import AccessCodeDialog from "@/components/AccessCodeDialog";
+import PaymentSuccessDialog from "@/components/PaymentSuccessDialog";
 import SecuritySettings from "@/components/SecuritySettings";
 import PromptOpsSettings from "@/components/PromptOpsSettings";
 import PromptEngineeringGuide from "@/components/PromptEngineeringGuide";
@@ -22,39 +22,36 @@ import PromptCollection from "@/components/PromptCollection";
 import { useToast } from "@/hooks/use-toast";
 import Header from "@/components/Header";
 import { useIsMobile } from "@/hooks/use-mobile";
-import paymentService from "@/services/paymentService";
-import geminiService from "@/services/geminiService";
-import ProSubscriptionDialog from "@/components/ProSubscriptionDialog";
-import { usePayment } from "@/hooks/use-payment";
+import { useAccessControl } from "@/hooks/use-access-control";
+import { Badge } from "@/components/ui/badge";
 
 export default function Index() {
   const [framework, setFramework] = useState("ACT");
   const [instruction, setInstruction] = useState("");
   const [output, setOutput] = useState("");
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
-  const [apiKeyDialogOpen, setApiKeyDialogOpen] = useState(false);
-  const [proSubscriptionDialogOpen, setProSubscriptionDialogOpen] = useState(false);
+  const [accessCodeDialogOpen, setAccessCodeDialogOpen] = useState(false);
+  const [paymentSuccessDialogOpen, setPaymentSuccessDialogOpen] = useState(false);
+  const [generatedAccessCode, setGeneratedAccessCode] = useState("");
   const { toast } = useToast();
   const isMobile = useIsMobile();
-  const { isPro, hasPaid } = usePayment();
+  
+  const {
+    hasAccess,
+    isLoading,
+    userAccessCode,
+    validateCode,
+    grantAccess,
+    revokeAccess,
+    checkAccessStatus
+  } = useAccessControl();
 
-  // Check authentication status on component mount
+  // Check access status on component mount
   useEffect(() => {
-    const hasApiKey = !!geminiService.getApiKey();
-    const hasPaid = paymentService.hasUserPaid();
-    
-    setIsAuthenticated(hasApiKey && hasPaid);
-    
-    // If user has API key but hasn't paid, show payment dialog
-    if (hasApiKey && !hasPaid) {
-      setPaymentDialogOpen(true);
-    } 
-    // If user has neither, show API key dialog first
-    else if (!hasApiKey) {
-      setApiKeyDialogOpen(true);
+    if (!isLoading && !hasAccess) {
+      setAccessCodeDialogOpen(true);
     }
-  }, []);
+  }, [isLoading, hasAccess]);
 
   const handleSystemInstructionSet = () => {
     console.log("System instruction updated");
@@ -64,58 +61,110 @@ export default function Index() {
     });
   };
 
-  const handleApiKeySubmit = () => {
-    // Check if the user has paid
-    if (!paymentService.hasUserPaid()) {
-      setPaymentDialogOpen(true);
-    } else {
-      setIsAuthenticated(true);
-    }
-  };
-
-  const handlePaymentComplete = () => {
+  const handlePaymentComplete = (accessCode: string) => {
     setPaymentDialogOpen(false);
-    setIsAuthenticated(true);
-    toast({
-      title: "Payment Successful",
-      description: "Your payment has been processed. You now have full access to the app."
-    });
+    setGeneratedAccessCode(accessCode);
+    setPaymentSuccessDialogOpen(true);
   };
-  
-  const handleProSubscriptionComplete = () => {
-    setProSubscriptionDialogOpen(false);
+
+  const handleAccessCodeSubmit = async (code: string) => {
+    return await validateCode(code);
+  };
+
+  const handleContinueAfterPayment = () => {
+    checkAccessStatus();
     toast({
-      title: "Pro Subscription Active",
-      description: "Welcome to InstructAI Pro! You now have access to all premium features."
+      title: "Welcome to InstructAI",
+      description: "You now have full access to the platform!"
     });
   };
 
+  const handleLogout = () => {
+    revokeAccess();
+    setAccessCodeDialogOpen(true);
+  };
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="flex flex-col min-h-screen">
+        <Header />
+        <div className="flex-grow flex items-center justify-center">
+          <div className="text-center space-y-4">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+            <p className="text-muted-foreground">Checking access permissions...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show access control dialogs
+  if (!hasAccess) {
+    return (
+      <div className="flex flex-col min-h-screen">
+        <Header />
+        <div className="flex-grow flex items-center justify-center p-4">
+          <Card className="w-full max-w-md">
+            <CardContent className="p-6 text-center space-y-6">
+              <div className="space-y-2">
+                <KeyRound className="mx-auto h-12 w-12 text-blue-500" />
+                <h2 className="text-2xl font-bold">Access Required</h2>
+                <p className="text-muted-foreground">
+                  Please enter your access code or purchase access to use InstructAI.
+                </p>
+              </div>
+              
+              <div className="space-y-3">
+                <Button 
+                  onClick={() => setAccessCodeDialogOpen(true)}
+                  className="w-full gap-2"
+                  variant="default"
+                >
+                  <KeyRound size={16} />
+                  Enter Access Code
+                </Button>
+                
+                <Button 
+                  onClick={() => setPaymentDialogOpen(true)}
+                  className="w-full gap-2"
+                  variant="outline"
+                >
+                  <Zap size={16} />
+                  Purchase Access
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <AccessCodeDialog
+          open={accessCodeDialogOpen}
+          onOpenChange={setAccessCodeDialogOpen}
+          onCodeSubmit={handleAccessCodeSubmit}
+        />
+        
+        <PaymentDialog
+          open={paymentDialogOpen}
+          onOpenChange={setPaymentDialogOpen}
+          onPaymentComplete={handlePaymentComplete}
+        />
+        
+        <PaymentSuccessDialog
+          open={paymentSuccessDialogOpen}
+          onOpenChange={setPaymentSuccessDialogOpen}
+          accessCode={generatedAccessCode}
+          onContinue={handleContinueAfterPayment}
+        />
+      </div>
+    );
+  }
+
+  // Main application content (only shown when user has access)
   return (
     <div className="flex flex-col min-h-screen no-scroll-x">
       <Header />
       <div className="container mx-auto max-w-7xl py-4 px-4 flex-grow safe-bottom">
-        {!isAuthenticated && (
-          <>
-            <ApiKeyDialog
-              open={apiKeyDialogOpen}
-              onOpenChange={setApiKeyDialogOpen}
-              onApiKeySubmit={handleApiKeySubmit}
-            />
-            <PaymentDialog
-              open={paymentDialogOpen}
-              onOpenChange={setPaymentDialogOpen}
-              onPaymentComplete={handlePaymentComplete}
-            />
-          </>
-        )}
-        
-        {/* Add the ProSubscriptionDialog regardless of authentication status */}
-        <ProSubscriptionDialog
-          open={proSubscriptionDialogOpen}
-          onOpenChange={setProSubscriptionDialogOpen}
-          onSubscriptionComplete={handleProSubscriptionComplete}
-        />
-
         <header className="mb-8">
           <motion.div
             initial={{ opacity: 0, y: -20 }}
@@ -130,6 +179,23 @@ export default function Index() {
               <p className="text-muted-foreground mt-1 text-sm mobile-friendly-text">
                 Advanced prompt engineering for AI models
               </p>
+              {userAccessCode && (
+                <div className="flex items-center gap-2 mt-2">
+                  <Badge variant="outline" className="bg-green-50 text-green-600">
+                    <KeyRound size={12} className="mr-1" />
+                    Access: {userAccessCode.slice(-6)}
+                  </Badge>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleLogout}
+                    className="h-6 px-2 text-xs text-red-600 hover:text-red-700 hover:bg-red-50"
+                  >
+                    <LogOut size={12} className="mr-1" />
+                    Logout
+                  </Button>
+                </div>
+              )}
             </div>
             <div className="mobile-stack lg:flex-row items-center gap-2 w-full lg:w-auto justify-center lg:justify-end">
               <Link to="/ai-applications" className="mobile-full-width">
