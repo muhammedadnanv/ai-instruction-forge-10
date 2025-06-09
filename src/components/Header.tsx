@@ -16,17 +16,23 @@ export default function Header() {
   };
 
   return (
-    <header className="border-b bg-background">
-      <div className="container mx-auto px-4 py-3 flex items-center justify-between">
+    <header className="border-b bg-background sticky top-0 z-50">
+      <div className="container mx-auto px-4 py-3 flex items-center justify-between max-w-7xl">
         <div className="flex items-center gap-2">
-          <Link to="/" className="font-bold text-xl flex items-center gap-1">
+          <Link to="/" className="font-bold text-xl flex items-center gap-1 touch-target">
             <span className="gradient-text">InstructAI</span>
           </Link>
         </div>
 
         {/* Mobile menu button */}
         {isMobile && (
-          <Button variant="ghost" size="icon" onClick={toggleMenu} className="md:hidden">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={toggleMenu} 
+            className="md:hidden touch-target"
+            aria-label="Toggle navigation menu"
+          >
             {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
           </Button>
         )}
@@ -35,7 +41,7 @@ export default function Header() {
         <nav className="hidden md:flex items-center gap-6">
           <Link
             to="/"
-            className={`text-sm font-medium transition-colors hover:text-primary ${
+            className={`text-sm font-medium transition-colors hover:text-primary touch-target ${
               location.pathname === "/" ? "text-primary" : "text-muted-foreground"
             }`}
           >
@@ -43,7 +49,7 @@ export default function Header() {
           </Link>
           <Link
             to="/ai-applications"
-            className={`text-sm font-medium transition-colors hover:text-primary ${
+            className={`text-sm font-medium transition-colors hover:text-primary touch-target ${
               location.pathname === "/ai-applications" ? "text-primary" : "text-muted-foreground"
             }`}
           >
@@ -51,7 +57,7 @@ export default function Header() {
           </Link>
           <Link
             to="#"
-            className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
+            className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary touch-target"
           >
             Documentation
           </Link>
@@ -59,11 +65,11 @@ export default function Header() {
 
         {/* Mobile navigation */}
         {isMobile && isMenuOpen && (
-          <div className="fixed inset-0 top-[57px] z-50 bg-background">
-            <nav className="flex flex-col p-4 space-y-4">
+          <div className="fixed inset-0 top-[60px] z-50 bg-background/95 backdrop-blur-sm">
+            <nav className="flex flex-col p-4 space-y-4 safe-top">
               <Link
                 to="/"
-                className={`text-lg font-medium transition-colors hover:text-primary ${
+                className={`text-lg font-medium transition-colors hover:text-primary touch-target mobile-center ${
                   location.pathname === "/" ? "text-primary" : "text-muted-foreground"
                 }`}
                 onClick={() => setIsMenuOpen(false)}
@@ -72,7 +78,7 @@ export default function Header() {
               </Link>
               <Link
                 to="/ai-applications"
-                className={`text-lg font-medium transition-colors hover:text-primary ${
+                className={`text-lg font-medium transition-colors hover:text-primary touch-target mobile-center ${
                   location.pathname === "/ai-applications" ? "text-primary" : "text-muted-foreground"
                 }`}
                 onClick={() => setIsMenuOpen(false)}
@@ -81,7 +87,7 @@ export default function Header() {
               </Link>
               <Link
                 to="#"
-                className="text-lg font-medium text-muted-foreground transition-colors hover:text-primary"
+                className="text-lg font-medium text-muted-foreground transition-colors hover:text-primary touch-target mobile-center"
                 onClick={() => setIsMenuOpen(false)}
               >
                 Documentation

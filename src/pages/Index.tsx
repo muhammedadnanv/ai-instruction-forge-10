@@ -91,9 +91,9 @@ export default function Index() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen no-scroll-x">
       <Header />
-      <div className="container mx-auto max-w-7xl py-4 px-4 flex-grow overflow-x-hidden">
+      <div className="container mx-auto max-w-7xl py-4 px-4 flex-grow safe-bottom">
         {!isAuthenticated && (
           <>
             <ApiKeyDialog
@@ -121,73 +121,81 @@ export default function Index() {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="flex flex-col sm:flex-row justify-between items-center"
+            className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4"
           >
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight">
+            <div className="mobile-center lg:text-left">
+              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
                 Instruct<span className="text-blue-600">AI</span>
               </h1>
-              <p className="text-gray-500 mt-1 text-sm">
+              <p className="text-muted-foreground mt-1 text-sm mobile-friendly-text">
                 Advanced prompt engineering for AI models
               </p>
             </div>
-            <div className="flex flex-wrap items-center gap-2 mt-4 sm:mt-0 justify-center sm:justify-start">
-              <Link to="/ai-applications">
-                <Button variant="default" className="gap-2 text-sm" size={isMobile ? "sm" : "default"}>
+            <div className="mobile-stack lg:flex-row items-center gap-2 w-full lg:w-auto justify-center lg:justify-end">
+              <Link to="/ai-applications" className="mobile-full-width">
+                <Button variant="default" className="gap-2 text-sm touch-target mobile-full-width" size={isMobile ? "default" : "default"}>
                   <Zap size={16} />
-                  <span className={isMobile ? "sr-only" : ""}>AI Applications</span>
+                  AI Applications
                 </Button>
               </Link>
-              <Link to="/prompt-engineering-tools">
-                <Button variant="outline" className="gap-2 text-sm" size={isMobile ? "sm" : "default"}>
+              <Link to="/prompt-engineering-tools" className="mobile-full-width">
+                <Button variant="outline" className="gap-2 text-sm touch-target mobile-full-width" size={isMobile ? "default" : "default"}>
                   <Lightbulb size={16} />
-                  <span className={isMobile ? "sr-only" : ""}>Prompt Tools</span>
+                  Prompt Tools
                 </Button>
               </Link>
-              <Link to="/prompt-ide">
-                <Button variant="outline" className="gap-2 text-sm" size={isMobile ? "sm" : "default"}>
+              <Link to="/prompt-ide" className="mobile-full-width">
+                <Button variant="outline" className="gap-2 text-sm touch-target mobile-full-width" size={isMobile ? "default" : "default"}>
                   <FileCode size={16} />
-                  <span className={isMobile ? "sr-only" : ""}>Prompt IDE</span>
+                  Prompt IDE
                 </Button>
               </Link>
-              <SystemInstructionDialog onSystemInstructionSet={handleSystemInstructionSet} />
-              <Button variant="outline" className="gap-2 text-sm" size={isMobile ? "sm" : "default"}>
+              <div className="mobile-full-width">
+                <SystemInstructionDialog onSystemInstructionSet={handleSystemInstructionSet} />
+              </div>
+              <Button variant="outline" className="gap-2 text-sm touch-target mobile-full-width" size={isMobile ? "default" : "default"}>
                 <Heart size={16} className="text-red-500" />
-                <span className={isMobile ? "sr-only" : ""}>Favorites</span>
+                Favorites
               </Button>
             </div>
           </motion.div>
         </header>
 
         <Tabs defaultValue="builder" className="mb-8">
-          <TabsList className="mb-4 overflow-x-auto flex w-full">
-            <TabsTrigger value="builder" className="gap-2 whitespace-nowrap">
-              <Code size={16} />
-              <span className={isMobile ? "hidden sm:inline" : ""}>Prompt Builder</span>
-            </TabsTrigger>
-            <TabsTrigger value="engineering" className="gap-2 whitespace-nowrap">
-              <Lightbulb size={16} />
-              <span className={isMobile ? "hidden sm:inline" : ""}>Prompt Engineering</span>
-            </TabsTrigger>
-            <TabsTrigger value="saved" className="gap-2 whitespace-nowrap">
-              <Heart size={16} />
-              <span className={isMobile ? "hidden sm:inline" : ""}>Saved Instructions</span>
-            </TabsTrigger>
-            <TabsTrigger value="security" className="gap-2 whitespace-nowrap">
-              <Lock size={16} />
-              <span className={isMobile ? "hidden sm:inline" : ""}>Security</span>
-            </TabsTrigger>
-            <TabsTrigger value="promptops" className="gap-2 whitespace-nowrap">
-              <Server size={16} />
-              <span className={isMobile ? "hidden sm:inline" : ""}>PromptOps</span>
-            </TabsTrigger>
-          </TabsList>
+          <div className="overflow-x-auto">
+            <TabsList className="mb-4 grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-1 h-auto p-1">
+              <TabsTrigger value="builder" className="gap-2 whitespace-nowrap touch-target text-xs sm:text-sm">
+                <Code size={16} />
+                <span className="hidden sm:inline">Prompt Builder</span>
+                <span className="sm:hidden">Builder</span>
+              </TabsTrigger>
+              <TabsTrigger value="engineering" className="gap-2 whitespace-nowrap touch-target text-xs sm:text-sm">
+                <Lightbulb size={16} />
+                <span className="hidden sm:inline">Prompt Engineering</span>
+                <span className="sm:hidden">Engineering</span>
+              </TabsTrigger>
+              <TabsTrigger value="saved" className="gap-2 whitespace-nowrap touch-target text-xs sm:text-sm">
+                <Heart size={16} />
+                <span className="hidden sm:inline">Saved Instructions</span>
+                <span className="sm:hidden">Saved</span>
+              </TabsTrigger>
+              <TabsTrigger value="security" className="gap-2 whitespace-nowrap touch-target text-xs sm:text-sm">
+                <Lock size={16} />
+                Security
+              </TabsTrigger>
+              <TabsTrigger value="promptops" className="gap-2 whitespace-nowrap touch-target text-xs sm:text-sm">
+                <Server size={16} />
+                <span className="hidden sm:inline">PromptOps</span>
+                <span className="sm:hidden">Ops</span>
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           <TabsContent value="builder">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
               <div className="space-y-6">
                 <Card>
-                  <CardContent className="p-6">
+                  <CardContent className="responsive-p">
                     <FrameworkSelector
                       selectedFramework={framework}
                       onFrameworkSelect={setFramework}
@@ -215,7 +223,7 @@ export default function Index() {
               </div>
 
               <Card className="h-full">
-                <CardContent className="p-6 h-full">
+                <CardContent className="responsive-p h-full">
                   <OutputPreview output={output} />
                 </CardContent>
               </Card>
@@ -224,7 +232,7 @@ export default function Index() {
           
           <TabsContent value="engineering">
             <Card>
-              <CardContent className="p-6">
+              <CardContent className="responsive-p">
                 <PromptEngineeringGuide />
               </CardContent>
             </Card>
@@ -232,7 +240,7 @@ export default function Index() {
 
           <TabsContent value="saved">
             <Card>
-              <CardContent className="p-6">
+              <CardContent className="responsive-p">
                 <SavedInstructions />
               </CardContent>
             </Card>
@@ -252,17 +260,17 @@ export default function Index() {
           <PromptCollection setInstruction={setInstruction} setSelectedFramework={setFramework} />
         </div>
 
-        <footer className="mt-16 border-t pt-6 text-center text-sm text-gray-500">
-          <div className="flex flex-col sm:flex-row justify-between items-center">
+        <footer className="mt-16 border-t pt-6 text-center text-sm text-muted-foreground">
+          <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
             <p>&copy; 2025 InstructAI. All rights reserved.</p>
-            <div className="flex flex-wrap gap-4 mt-4 sm:mt-0 justify-center">
-              <a href="#" className="hover:text-blue-600 flex items-center gap-1">
+            <div className="flex flex-wrap gap-4 justify-center">
+              <a href="#" className="hover:text-primary flex items-center gap-1 touch-target">
                 Documentation <ArrowUpRight size={14} />
               </a>
-              <a href="#" className="hover:text-blue-600 flex items-center gap-1">
+              <a href="#" className="hover:text-primary flex items-center gap-1 touch-target">
                 API Reference <ArrowUpRight size={14} />
               </a>
-              <a href="#" className="hover:text-blue-600 flex items-center gap-1">
+              <a href="#" className="hover:text-primary flex items-center gap-1 touch-target">
                 Support <ArrowUpRight size={14} />
               </a>
             </div>

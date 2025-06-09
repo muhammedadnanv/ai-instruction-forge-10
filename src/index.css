@@ -93,22 +93,23 @@
     @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
     -webkit-tap-highlight-color: transparent;
+    overflow-x: hidden;
+  }
+  
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    overflow-x: hidden;
   }
   
   /* Improve focus states for better accessibility */
   :focus-visible {
-    @apply outline-none ring-2 ring-offset-2 ring-indigo-500;
+    @apply outline-none ring-2 ring-offset-2 ring-primary;
   }
   
   /* Improve form element consistency */
   input, textarea, select {
-    @apply focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 focus:border-indigo-300 transition-all duration-200;
-  }
-
-  /* Fix iOS text size adjustment */
-  html {
-    -webkit-text-size-adjust: 100%;
-    text-size-adjust: 100%;
+    @apply focus:ring-2 focus:ring-primary focus:ring-opacity-50 focus:border-primary transition-all duration-200;
   }
 }
 
@@ -125,16 +126,31 @@
   
   /* Gradient text */
   .gradient-text {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-blue-600;
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary to-blue-600;
   }
 
   /* Mobile optimizations */
   .mobile-friendly-text {
-    @apply text-base sm:text-sm md:text-base;
+    @apply text-sm sm:text-base;
   }
 
   .touch-target {
-    @apply min-h-[44px] min-w-[44px];
+    @apply min-h-[44px] min-w-[44px] flex items-center justify-center;
+  }
+
+  /* Responsive containers */
+  .responsive-container {
+    @apply px-4 sm:px-6 lg:px-8;
+  }
+
+  /* Mobile-first grid */
+  .mobile-grid {
+    @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6;
+  }
+
+  /* Stack elements vertically on mobile */
+  .mobile-stack {
+    @apply flex flex-col sm:flex-row gap-2 sm:gap-4;
   }
 }
 
@@ -148,76 +164,154 @@
 
   /* Responsive spacing utilities */
   .responsive-p {
-    @apply p-4 sm:p-6 md:p-8;
+    @apply p-3 sm:p-4 md:p-6 lg:p-8;
   }
   
   .responsive-m {
-    @apply m-2 sm:m-4 md:m-6;
+    @apply m-2 sm:m-3 md:m-4 lg:m-6;
   }
 
   .responsive-gap {
-    @apply gap-2 sm:gap-4 md:gap-6;
+    @apply gap-2 sm:gap-3 md:gap-4 lg:gap-6;
   }
 
   /* Safe area insets for iOS devices */
   .safe-top {
-    padding-top: env(safe-area-inset-top);
+    padding-top: max(env(safe-area-inset-top), 1rem);
   }
   
   .safe-bottom {
-    padding-bottom: env(safe-area-inset-bottom);
+    padding-bottom: max(env(safe-area-inset-bottom), 1rem);
   }
   
   .safe-left {
-    padding-left: env(safe-area-inset-left);
+    padding-left: max(env(safe-area-inset-left), 1rem);
   }
   
   .safe-right {
-    padding-right: env(safe-area-inset-right);
+    padding-right: max(env(safe-area-inset-right), 1rem);
+  }
+
+  /* Mobile-specific utilities */
+  .mobile-full-width {
+    @apply w-full sm:w-auto;
+  }
+
+  .mobile-center {
+    @apply text-center sm:text-left;
+  }
+
+  /* Prevent horizontal scrolling */
+  .no-scroll-x {
+    overflow-x: hidden;
   }
 }
 
 /* Custom scrollbar for better UX */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #f1f1f1;
+  background: hsl(var(--muted));
   border-radius: 10px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #c1c1c1;
+  background: hsl(var(--muted-foreground) / 0.3);
   border-radius: 10px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #a1a1a1;
+  background: hsl(var(--muted-foreground) / 0.5);
 }
 
 /* Mobile optimizations */
 @media (max-width: 640px) {
   /* Increase touch targets */
-  button, a {
-    @apply min-h-[44px] min-w-[44px] flex items-center justify-center;
+  button, a, [role="button"] {
+    @apply touch-target;
   }
   
   /* Adjust form inputs for touch */
   input, select, textarea {
-    @apply p-3 text-base;
+    @apply p-3 text-base min-h-[44px];
+  }
+
+  /* Improve button sizing */
+  .btn {
+    @apply min-h-[44px] px-4 py-3;
+  }
+
+  /* Stack navigation items */
+  .nav-items {
+    @apply flex-col space-y-2;
+  }
+
+  /* Full width cards on mobile */
+  .card-mobile {
+    @apply w-full;
+  }
+
+  /* Adjust font sizes */
+  h1 {
+    @apply text-2xl;
+  }
+  h2 {
+    @apply text-xl;
+  }
+  h3 {
+    @apply text-lg;
+  }
+}
+
+/* Tablet optimizations */
+@media (min-width: 641px) and (max-width: 1024px) {
+  .tablet-grid {
+    @apply grid-cols-2;
   }
 }
 
 /* Prevent text from overflowing containers */
 .text-ellipsis {
   @apply overflow-hidden whitespace-nowrap;
-  text-overflow: ellipsis; /* Use the CSS property directly instead of the Tailwind class */
+  text-overflow: ellipsis;
 }
 
 /* Fix iOS momentum scrolling */
 .momentum-scroll {
   -webkit-overflow-scrolling: touch;
-  overflow-y: scroll;
+  overflow-y: auto;
+}
+
+/* Mobile-friendly modal positioning */
+@media (max-width: 640px) {
+  .modal-mobile {
+    @apply fixed inset-x-2 top-4 bottom-4 rounded-lg;
+  }
+}
+
+/* Improve tap targets for mobile */
+@media (hover: none) and (pointer: coarse) {
+  button, a, [role="button"] {
+    @apply min-h-[48px] min-w-[48px];
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  :root {
+    --border: 0 0% 20%;
+    --input: 0 0% 20%;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

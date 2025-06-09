@@ -11,6 +11,7 @@ interface ResponsiveWrapperProps {
 
 /**
  * A wrapper component that applies different classNames based on screen size
+ * Optimized for mobile-first responsive design
  */
 export function ResponsiveWrapper({
   children,
@@ -21,7 +22,9 @@ export function ResponsiveWrapper({
   const isMobile = useIsMobile();
   
   const combinedClassName = React.useMemo(() => {
-    return `${className} ${isMobile ? mobileClassName : desktopClassName}`.trim();
+    const baseClasses = "transition-all duration-200";
+    const responsiveClasses = isMobile ? mobileClassName : desktopClassName;
+    return `${baseClasses} ${className} ${responsiveClasses}`.trim();
   }, [className, mobileClassName, desktopClassName, isMobile]);
   
   return (
@@ -29,4 +32,37 @@ export function ResponsiveWrapper({
       {children}
     </div>
   );
+}
+
+/**
+ * Hook for responsive breakpoints
+ */
+export function useResponsiveBreakpoints() {
+  const [breakpoint, setBreakpoint] = React.useState<'mobile' | 'tablet' | 'desktop'>('mobile');
+
+  React.useEffect(() => {
+    const updateBreakpoint = () => {
+      const width = window.innerWidth;
+      if (width < 768) {
+        setBreakpoint('mobile');
+      } else if (width < 1024) {
+        setBreakpoint('tablet');
+      } else {
+        setBreakpoint('desktop');
+      }
+    };
+
+    updateBreakpoint();
+    window.addEventListener('resize', updateBreakpoint);
+    
+    return () => window.removeEventListener('resize', updateBreakpoint);
+  }, []);
+
+  return {
+    breakpoint,
+    isMobile: breakpoint === 'mobile',
+    isTablet: breakpoint === 'tablet',
+    isDesktop: breakpoint === 'desktop',
+    isMobileOrTablet: breakpoint === 'mobile' || breakpoint === 'tablet',
+  };
 }
