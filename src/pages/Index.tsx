@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -18,7 +19,6 @@ import PromptOpsSettings from "@/components/PromptOpsSettings";
 import PromptEngineeringGuide from "@/components/PromptEngineeringGuide";
 import PromptStrategies from "@/components/PromptStrategies";
 import PromptCollection from "@/components/PromptCollection";
-import DonatingWidget from "@/components/DonatingWidget";
 import { useToast } from "@/hooks/use-toast";
 import Header from "@/components/Header";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -269,22 +269,6 @@ export default function Index() {
           </div>
         </footer>
       </div>
-      
-      {/* Add the DonatingWidget */}
-      <DonatingWidget
-        upiId="adnanmuhammad4393@okicici"
-        name="Muhammed Adnan"
-        amount={399}
-        position="bottom-right"
-        primaryColor="#8B5CF6"
-        buttonText="Pyam"
-        theme="modern"
-        icon="gift"
-        showPulse={true}
-        showGradient={true}
-        title="Pay to me "
-        description="Scan this QR code to make a Pyam"
-      />
     </div>
   );
 }
