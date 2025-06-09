@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -6,27 +5,37 @@ import { useToast } from "@/hooks/use-toast";
 import { Check, CreditCard, IndianRupee, Wallet, AlertCircle, Loader2, RefreshCw } from "lucide-react";
 import paymentService, { PAYMENT_STATUS, UPI_PAYMENT_DETAILS } from "@/services/paymentService";
 import { usePayment } from "@/hooks/use-payment";
-
 interface PaymentDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onPaymentComplete: (accessCode: string) => void;
 }
-
-const PaymentDialog = ({ open, onOpenChange, onPaymentComplete }: PaymentDialogProps) => {
+const PaymentDialog = ({
+  open,
+  onOpenChange,
+  onPaymentComplete
+}: PaymentDialogProps) => {
   const [isPaid, setIsPaid] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
   const [paymentInitiated, setPaymentInitiated] = useState(false);
   const [verificationMessage, setVerificationMessage] = useState("");
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const { toast } = useToast();
-  const { verifyPaymentStatus } = usePayment();
-  
-  const { upiId, amount, currency, beneficiaryName } = UPI_PAYMENT_DETAILS;
+  const {
+    toast
+  } = useToast();
+  const {
+    verifyPaymentStatus
+  } = usePayment();
+  const {
+    upiId,
+    amount,
+    currency,
+    beneficiaryName
+  } = UPI_PAYMENT_DETAILS;
 
   // Generate UPI QR code link
   const upiQrLink = `upi://pay?pa=${upiId}&am=${amount}&cu=${currency}&tn=InstructAI Payment`;
-  
+
   // Generate QR code image URL using a QR code API
   const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(upiQrLink)}`;
 
@@ -44,22 +53,17 @@ const PaymentDialog = ({ open, onOpenChange, onPaymentComplete }: PaymentDialogP
   const handleVerifyPayment = async () => {
     setIsVerifying(true);
     setVerificationMessage("Verifying your payment...");
-    
     try {
       const success = await verifyPaymentStatus(paymentInitiated);
-      
       if (success) {
         // Generate access code after verification
         const accessCode = paymentService.recordPayment();
-        
         setIsPaid(true);
         setVerificationMessage("");
-        
         toast({
           title: "Payment Verified",
           description: "Thank you for your payment. You now have full access to all features."
         });
-        
         setTimeout(() => {
           onPaymentComplete(accessCode || "GENERATING...");
           onOpenChange(false);
@@ -83,7 +87,6 @@ const PaymentDialog = ({ open, onOpenChange, onPaymentComplete }: PaymentDialogP
       });
     }
   };
-
   const handlePaymentInitiation = () => {
     // Track that payment was initiated via QR code
     setPaymentInitiated(true);
@@ -91,7 +94,7 @@ const PaymentDialog = ({ open, onOpenChange, onPaymentComplete }: PaymentDialogP
       title: "Payment Initiated",
       description: "After completing the payment, click 'Verify Payment' button."
     });
-    
+
     // In a real app, you would open the user's UPI app or payment method
     try {
       window.open(upiQrLink, '_blank');
@@ -104,13 +107,10 @@ const PaymentDialog = ({ open, onOpenChange, onPaymentComplete }: PaymentDialogP
       });
     }
   };
-
   const handleRefreshPaymentStatus = async () => {
     setIsRefreshing(true);
-    
     try {
       const success = await verifyPaymentStatus(true);
-      
       if (success) {
         const accessCode = paymentService.recordPayment();
         setIsPaid(true);
@@ -118,7 +118,6 @@ const PaymentDialog = ({ open, onOpenChange, onPaymentComplete }: PaymentDialogP
           title: "Payment Found",
           description: "Your payment has been successfully verified."
         });
-        
         setTimeout(() => {
           onPaymentComplete(accessCode || "GENERATING...");
           onOpenChange(false);
@@ -136,13 +135,9 @@ const PaymentDialog = ({ open, onOpenChange, onPaymentComplete }: PaymentDialogP
         variant: "destructive"
       });
     }
-    
     setIsRefreshing(false);
   };
-
-  
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+  return <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -155,8 +150,7 @@ const PaymentDialog = ({ open, onOpenChange, onPaymentComplete }: PaymentDialogP
         </DialogHeader>
         
         <div className="flex flex-col items-center justify-center py-4 space-y-4">
-          {!isPaid ? (
-            <>
+          {!isPaid ? <>
               {/* UPI Gateway Widget */}
               <div className="w-full max-w-sm mx-auto border border-gray-200 rounded-lg p-5 shadow-sm bg-white upi-gateway-container">
                 <style>{`
@@ -192,11 +186,7 @@ const PaymentDialog = ({ open, onOpenChange, onPaymentComplete }: PaymentDialogP
                 </h3>
                 
                 <div className="text-center mb-5">
-                  <img 
-                    src={qrCodeUrl}
-                    alt="UPI Payment QR Code" 
-                    className="w-48 h-48 border-2 border-gray-100 rounded-lg mx-auto upi-gateway-qr"
-                  />
+                  <img src={qrCodeUrl} alt="UPI Payment QR Code" className="w-48 h-48 border-2 border-gray-100 rounded-lg mx-auto upi-gateway-qr" />
                   <p className="mt-3 text-xs text-gray-500 font-medium">
                     Scan with any UPI app
                   </p>
@@ -216,14 +206,8 @@ const PaymentDialog = ({ open, onOpenChange, onPaymentComplete }: PaymentDialogP
 
                 <div className="border-t border-gray-200 pt-4 text-center">
                   <p className="text-xs text-gray-500 mb-3">Or click to pay directly</p>
-                  <a 
-                    href={upiQrLink}
-                    className="block no-underline"
-                    onClick={handlePaymentInitiation}
-                  >
-                    <button 
-                      className="w-full py-4 bg-gradient-to-r from-green-500 to-green-600 text-white text-base font-semibold rounded-lg cursor-pointer transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 upi-gateway-button"
-                    >
+                  <a href={upiQrLink} className="block no-underline" onClick={handlePaymentInitiation}>
+                    <button className="w-full py-4 bg-gradient-to-r from-green-500 to-green-600 text-white text-base font-semibold rounded-lg cursor-pointer transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 upi-gateway-button">
                       💳 Pay ₹{amount} via UPI
                     </button>
                   </a>
@@ -235,61 +219,31 @@ const PaymentDialog = ({ open, onOpenChange, onPaymentComplete }: PaymentDialogP
                 </p>
               </div>
               
-              {paymentInitiated && (
-                <div className="mt-3 text-sm text-center text-green-600 bg-green-50 p-2 rounded">
+              {paymentInitiated && <div className="mt-3 text-sm text-center text-green-600 bg-green-50 p-2 rounded">
                   <Check size={14} className="inline mr-1" />
                   Payment initiated. Click "Verify Payment" below after completing.
-                </div>
-              )}
+                </div>}
               
               <DialogFooter className="sm:justify-between w-full flex flex-col sm:flex-row gap-2 mt-2">
-                <Button 
-                  variant="outline" 
-                  onClick={() => onOpenChange(false)}
-                >
+                <Button variant="outline" onClick={() => onOpenChange(false)}>
                   Cancel
                 </Button>
                 
                 <div className="flex gap-2">
-                  <Button 
-                    onClick={handleRefreshPaymentStatus}
-                    variant="outline"
-                    disabled={isRefreshing}
-                    className="gap-2"
-                  >
-                    {isRefreshing ? (
-                      <Loader2 size={16} className="animate-spin" />
-                    ) : (
-                      <RefreshCw size={16} />
-                    )}
+                  <Button onClick={handleRefreshPaymentStatus} variant="outline" disabled={isRefreshing} className="gap-2">
+                    {isRefreshing ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
                     Refresh Status
                   </Button>
                   
-                  <Button 
-                    onClick={handleVerifyPayment}
-                    className="gap-2 bg-green-600 hover:bg-green-700"
-                  >
-                    <CreditCard size={16} />
-                    Verify Payment
-                  </Button>
+                  
                 </div>
               </DialogFooter>
               
-              {verificationMessage && (
-                <div className={`flex items-center gap-2 text-sm ${isPaid ? 'text-green-600' : 'text-amber-600'}`}>
-                  {isVerifying ? (
-                    <Loader2 size={14} className="animate-spin" />
-                  ) : isPaid ? (
-                    <Check size={14} />
-                  ) : (
-                    <AlertCircle size={14} />
-                  )}
+              {verificationMessage && <div className={`flex items-center gap-2 text-sm ${isPaid ? 'text-green-600' : 'text-amber-600'}`}>
+                  {isVerifying ? <Loader2 size={14} className="animate-spin" /> : isPaid ? <Check size={14} /> : <AlertCircle size={14} />}
                   <p>{verificationMessage}</p>
-                </div>
-              )}
-            </>
-          ) : (
-            <div className="flex flex-col items-center justify-center py-8">
+                </div>}
+            </> : <div className="flex flex-col items-center justify-center py-8">
               <div className="bg-green-100 rounded-full p-3 mb-4">
                 <Check className="text-green-600 w-8 h-8" />
               </div>
@@ -298,22 +252,15 @@ const PaymentDialog = ({ open, onOpenChange, onPaymentComplete }: PaymentDialogP
                 Thank you for your payment. Your access code will be generated shortly.
               </p>
               
-              <Button 
-                onClick={() => {
-                  onPaymentComplete("GENERATING...");
-                  onOpenChange(false);
-                }}
-                className="mt-6"
-                variant="default"
-              >
+              <Button onClick={() => {
+            onPaymentComplete("GENERATING...");
+            onOpenChange(false);
+          }} className="mt-6" variant="default">
                 Continue to Get Access Code
               </Button>
-            </div>
-          )}
+            </div>}
         </div>
       </DialogContent>
-    </Dialog>
-  );
+    </Dialog>;
 };
-
 export default PaymentDialog;
